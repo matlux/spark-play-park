@@ -20,13 +20,13 @@ object SparkIngestion {
     val opts = Map("header" -> "true",
                     "timestampFormat" -> "dd/MM/yyyy",
                     "inferSchema" -> "true")
-    val df0 = spark.read.options(opts).csv("/home/mathieu/datashare/investment-transactions/Matlux_rate-setter_LenderTransactions_all_2017-07-31.csv")
+    val df0 = spark.read.options(opts).csv("/home/mathieu/Dropbox/Finance/investment-transactions/Matlux_rate-setter_LenderTransactions_all_2017-07-31.csv")
 
 
 
 
-    //val df = df0.withColumn("month",month(column("date"))).withColumn("year",year(column("date")))
-    val df = spark.read.parquet("/home/mathieu/datashare/hdfs/parquet/test3")
+    val df = df0.withColumn("month",month(column("date"))).withColumn("year",year(column("date")))
+    //val df = spark.read.parquet("/home/mathieu/datashare/hdfs/parquet/test3")
 
     df.filter(column("year")==="2014").groupBy("year","month","type").sum("amount","capital","interest","fee").sort("year","month").show()
     df.filter(column("year")==="2014").groupBy("year","month","type").sum("amount").sort("year","month").show()
@@ -66,9 +66,9 @@ object SparkIngestion {
 
     df.write.save("/home/mathieu/datashare/hdfs/parquet/test")
 
-    finalReport.coalesce(1).write .option("header", "true").csv("/home/mathieu/datashare/hdfs/rateSetter_report4.cvs")
+    finalReport.coalesce(1).write .option("header", "true").csv("./hdfs/rateSetter_report4.cvs")
 
-    df.write.partitionBy("year","month","type").mode(SaveMode.Append).save("/home/mathieu/datashare/hdfs/parquet/test3")
+    df.write.partitionBy("year","month","type").mode(SaveMode.Append).save("./hdfs/parquet/test3")
 
 
 
