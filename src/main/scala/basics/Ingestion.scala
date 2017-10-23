@@ -3,24 +3,65 @@ package basics
 //import org.apache.spark.SparkContext
 //import org.apache.spark.SparkContext._
 //import org.apache.spark.SparkConf
-import org.apache.spark.sql.{SaveMode, Column, SparkSession}
+import config.MyConfig
+import org.apache.spark.sql.{Column, SaveMode, SparkSession}
 import org.apache.spark.sql.functions._
 import org.apache.spark.sql.expressions.Window
 //import org.apache.spark.sql._
+import com.typesafe.config.ConfigFactory
 
 object SparkIngestion {
 
   def main(args: Array[String]) {
 
+    /*
+    val args = List()
+    val args = List("dev")
+
+    val fileNameOption = List()
+
+    val config = fileNameOption.fold(
+    ifEmpty = ConfigFactory.load() )(
+    file => ConfigFactory.load(file) )
+     */
+
+    val envName = if (args.size == 1) {
+      val envName = args(0)
+      Some(envName)
+    } else {
+      None
+    }
+
+    val config = new MyConfig(envName)
+
+    val inputData = config.getString("basic.inputData")
+    val outputData = config.getString("basic.outputData")
+    val master = config.getString("basic.master")
+
+
+    println(s"inputData is $inputData")
+    println(s"outputData is $outputData")
+    println(s"master is $master")
+
+    //val inputData = "./input"
+    //val outputData = "./outputdata"
+
     //val sc = new SparkContext(new SparkConf().setAppName("Scala Spark example").setMaster("local[*]"))
 
-    val spark = SparkSession.builder.appName("Simple Application").master("local[*]").getOrCreate()
+    val sBuilder = SparkSession.builder.appName("Simple Application")
+
+    val spark : SparkSession = (if (master=="yarn") {
+      sBuilder
+    } else {sBuilder.master(master)}).getOrCreate()
+
+    //val spark = SparkSession.builder.appName("Simple Application").master("local[*]").getOrCreate()
+    //val spark = SparkSession.builder.appName("Simple Application").getOrCreate()
 
     //val spark = new SQLContext(sc)
     val opts = Map("header" -> "true",
                     "timestampFormat" -> "dd/MM/yyyy",
                     "inferSchema" -> "true")
-    val df0 = spark.read.options(opts).csv("/home/mathieu/Dropbox/Finance/investment-transactions/Matlux_rate-setter_LenderTransactions_all_2017-07-31.csv")
+    val df0 = spark.read.options(opts).csv(inputData + "/Matlux_rate-setter_LenderTransactions_all_2017-07-31.csv")
 
 
 
@@ -64,11 +105,11 @@ object SparkIngestion {
 
     spark.sql("select sum(interest) from transaction").show();
 
-    df.write.save("/home/mathieu/datashare/hdfs/parquet/test")
+    df.write.save(outputData + "/parquet/test")
 
-    finalReport.coalesce(1).write .option("header", "true").csv("./hdfs/rateSetter_report4.cvs")
+    finalReport.coalesce(1).write .option("header", "true").csv(outputData + "/rateSetter_report4.cvs")
 
-    df.write.partitionBy("year","month","type").mode(SaveMode.Append).save("./hdfs/parquet/test3")
+    df.write.partitionBy("year","month","type").mode(SaveMode.Append).save(outputData + "/hdfs/parquet/test3")
 
 
 

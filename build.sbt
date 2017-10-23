@@ -11,7 +11,8 @@ javacOptions ++= Seq("-source", "1.8", "-target", "1.8")
 libraryDependencies ++= Seq(
   "org.apache.spark" %% "spark-core" % "2.2.0",
   "org.apache.spark" %% "spark-sql" % "2.2.0",
-  "org.scalatest" %% "scalatest" % "3.0.4" % "test"//,
+  "org.scalatest" %% "scalatest" % "3.0.4" % "test",
+  "com.typesafe" % "config" % "1.3.1"
   //"net.sf.opencsv" % "opencsv" % "2.3"
 )
 
