@@ -26,4 +26,4 @@ sudo -u hdfs hadoop fs -chown -R dummy:dummy hdfs://localhost/user/dummy
 
 ## Submit the job on YARN
 
-    spark-submit --class basics.SparkCountNoHDFS --master yarn target/scala-2.11/spark-play-park-assembly-0.1.jar
+    spark-submit --class basics.SparkCountNoHDFS --master yarn target/scala-2.11/spark-play-park-assembly-0.1.jar dev
