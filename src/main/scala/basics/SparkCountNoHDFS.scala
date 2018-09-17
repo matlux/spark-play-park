@@ -27,22 +27,28 @@ object SparkCountNoHDFS {
 
     println(s"master is $master")
 
-    val sc = if (master=="yarn") new SparkContext(new SparkConf().setAppName("SparkAvg"))
-    else new SparkContext(new SparkConf().setAppName("SparkAvg").setMaster(master))
+    val appName = "SparkCountNoHDFS"
+    
+    val sc = if (master=="yarn") new SparkContext(new SparkConf().setAppName(appName))
+    else new SparkContext(new SparkConf().setAppName(appName).setMaster(master))
 
 
     val inputRDD = sc.parallelize(List("The quick brown fox jumps over the lazy dog",
       "The earliest known appearance of the phrase is",
       "A favorite copy set by writing teachers for their pupils",
-      "is the following, because it contains every letter of the alphabet"))
+      "is the following, because it contains every letter of the alphabet",
+      "This is just a fifth line."))
 //      sc.textFile(inputData + "/wordcount-input.txt")
 
     val wordsRDD = inputRDD.flatMap(x => x.split(" "))
-    val countRDD = wordsRDD.map(x => (x, 1))
-      .reduceByKey((x, y) => x + y)
+    val pairedRDD = wordsRDD.map(x => (x, 1))
+    val countRDD = pairedRDD.reduceByKey((x, y) => x + y)
 
 
     println(countRDD.collect().mkString(", "))
+
+    println("press enter to continue...")
+    scala.io.StdIn.readLine()
 
   }
 

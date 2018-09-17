@@ -20,10 +20,18 @@ sudo -u hdfs hadoop fs -chown -R dummy:dummy hdfs://localhost/user/dummy
 
     hadoop fs -copyFromLocal input/wordcount-input.txt hdfs://localhost/user/clojspark/basics/inputdata
 
-## Build Scala Assembly
+## Build Scala Assembly with SBT
 
     sbt assembly;
 
-## Submit the job on YARN
+## Build jar + dependencies with maven
+
+    mvn clean package
+
+## Submit the job on YARN (build with SBT)
 
     spark-submit --class basics.SparkCountNoHDFS --master yarn target/scala-2.11/spark-play-park-assembly-0.1.jar dev
+
+## Submit the job on Spark Standalone (built with maven)
+
+    spark-submit --jars target/lib/config-1.3.1.jar --class basics.SparkCountNoHDFS --master spark://mathieu-XPS-13-9360:7077 target/spark-splay-park_2.11-1.0.0-SNAPSHOT.jar dev
