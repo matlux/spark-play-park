@@ -35,3 +35,7 @@ sudo -u hdfs hadoop fs -chown -R dummy:dummy hdfs://localhost/user/dummy
 ## Submit the job on Spark Standalone (built with maven)
 
     spark-submit --jars target/lib/config-1.3.1.jar --class basics.SparkCountNoHDFS --master spark://mathieu-XPS-13-9360:7077 target/spark-splay-park_2.11-1.0.0-SNAPSHOT.jar dev
+
+## Submit the job on Spark Standalone (built with maven) and debug
+
+    spark-submit --jars target/lib/config-1.3.1.jar --driver-java-options -agentlib:jdwp=transport=dt_socket,server=y,suspend=y,address=5005 --conf spark.driver.host=<local ip> --conf spark.executor.cores=4  --class basics.SparkCountNoHDFS --master spark://mathieu-XPS-13-9360:7077 target/spark-splay-park_2.11-1.0.0-SNAPSHOT.jar dev

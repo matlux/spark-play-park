@@ -4,8 +4,9 @@ import config.MyConfig
 import org.apache.spark.SparkContext
 import org.apache.spark.SparkContext._
 import org.apache.spark.SparkConf
+import org.apache.log4j.{Level,Logger}
 
-
+import org.apache.spark.TaskContext
 
 
 object SparkCountNoHDFS {
@@ -13,6 +14,8 @@ object SparkCountNoHDFS {
 
 
   def main(args: Array[String]) {
+
+    val log = Logger.getRootLogger
 
     val envName = if (args.size == 1) {
       val envName = args(0)
