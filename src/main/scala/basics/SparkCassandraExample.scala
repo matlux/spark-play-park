@@ -1,15 +1,11 @@
 package basics
 
 import config.MyConfig
-import org.apache.spark.SparkContext
-import org.apache.spark.SparkContext._
-import org.apache.spark.SparkConf
-import org.apache.log4j.{Level,Logger}
-
-import org.apache.spark.TaskContext
+import org.apache.log4j.Logger
+import org.apache.spark.{SparkConf, SparkContext}
 
 
-object SparkCountNoHDFS {
+object SparkCassandraExample {
 
 
 
@@ -35,21 +31,13 @@ object SparkCountNoHDFS {
     val sc = if (master=="yarn") new SparkContext(new SparkConf().setAppName(appName))
     else new SparkContext(new SparkConf().setAppName(appName).setMaster(master))
 
-    sparkClientRunCountNoHDFS(sc )
 
-
-    println("press enter to continue...")
-    scala.io.StdIn.readLine()
-
-  }
-
-  def sparkClientRunCountNoHDFS(sc: SparkContext ) {
     val inputRDD = sc.parallelize(List("The quick brown fox jumps over the lazy dog",
       "The earliest known appearance of the phrase is",
       "A favorite copy set by writing teachers for their pupils",
       "is the following, because it contains every letter of the alphabet",
       "This is just a fifth line."))
-    //      sc.textFile(inputData + "/wordcount-input.txt")
+//      sc.textFile(inputData + "/wordcount-input.txt")
 
     val wordsRDD = inputRDD.flatMap(x => x.split(" "))
     val pairedRDD = wordsRDD.map(x => (x, 1))
@@ -57,6 +45,10 @@ object SparkCountNoHDFS {
 
 
     println(countRDD.collect().mkString(", "))
+
+    println("press enter to continue...")
+    scala.io.StdIn.readLine()
+
   }
 
 }

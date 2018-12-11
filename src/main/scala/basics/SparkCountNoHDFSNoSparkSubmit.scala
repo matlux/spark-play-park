@@ -1,21 +1,18 @@
 package basics
 
 import config.MyConfig
-import org.apache.spark.SparkContext
-import org.apache.spark.SparkContext._
-import org.apache.spark.SparkConf
-import org.apache.log4j.{Level,Logger}
-
-import org.apache.spark.TaskContext
+import org.apache.log4j.Logger
+import org.apache.spark.sql.SparkSession
+import org.apache.spark.{SparkConf, SparkContext}
 
 
-object SparkCountNoHDFS {
+object SparkCountNoHDFSNoSparkSubmit {
 
 
 
   def main(args: Array[String]) {
 
-    val log = Logger.getRootLogger
+    //val log = Logger.getRootLogger
 
     val envName = if (args.size == 1) {
       val envName = args(0)
@@ -26,16 +23,15 @@ object SparkCountNoHDFS {
 
     val config = new MyConfig(envName)
 
-    val master = config.getString("basic.master")
+    val master = config.getString("spark.master")
 
     println(s"master is $master")
 
     val appName = "SparkCountNoHDFS"
-    
-    val sc = if (master=="yarn") new SparkContext(new SparkConf().setAppName(appName))
-    else new SparkContext(new SparkConf().setAppName(appName).setMaster(master))
 
-    sparkClientRunCountNoHDFS(sc )
+    val sc = SparkSession.builder.appName(appName).getOrCreate()
+
+    sparkClientRunCountNoHDFS(sc)
 
 
     println("press enter to continue...")
@@ -43,8 +39,8 @@ object SparkCountNoHDFS {
 
   }
 
-  def sparkClientRunCountNoHDFS(sc: SparkContext ) {
-    val inputRDD = sc.parallelize(List("The quick brown fox jumps over the lazy dog",
+  def sparkClientRunCountNoHDFS(sc: SparkSession ) {
+    val inputRDD = sc.sparkContext.parallelize(List("The quick brown fox jumps over the lazy dog",
       "The earliest known appearance of the phrase is",
       "A favorite copy set by writing teachers for their pupils",
       "is the following, because it contains every letter of the alphabet",

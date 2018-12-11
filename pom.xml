@@ -32,6 +32,13 @@
             <version>${spark.version}</version>
             <scope>provided</scope>
         </dependency>
+        <!-- https://mvnrepository.com/artifact/com.datastax.spark/spark-cassandra-connector -->
+        <dependency>
+            <groupId>com.datastax.spark</groupId>
+            <artifactId>spark-cassandra-connector_${scala.compact.version}</artifactId>
+            <version>2.3.2</version>
+        </dependency>
+
         <!-- <dependency><groupId>org.apache.spark</groupId><artifactId>spark-mllib_${scala.compact.version}</artifactId><scope>provided</scope></dependency> -->
 
         <dependency>
