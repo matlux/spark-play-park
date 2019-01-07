@@ -3,6 +3,7 @@ package basics
 
 import java.io.File
 
+import basics.ConcatenateFC.FC
 import org.apache.spark.sql.{Column, DataFrame, SaveMode, SparkSession}
 import org.apache.spark.sql.types._
 import org.apache.spark.sql.functions._
@@ -46,6 +47,7 @@ object ConcatenateFC {
   val FEE_TYPE = "Servicing fee"
   val FINAL_FEE_TYPE2 = "Servicing fee final"
 
+      // REPAYMENT
   val PRINCIPAL_REPAYMENT_TYPE = "Principal repayment"
   val EARLY_PRINCIPAL_REPAYMENT_TYPE = "Early principal repayment"
   val SELLOUT_TYPE = null
@@ -83,6 +85,7 @@ object ConcatenateFC {
   val RS_FEE_TYPE = "RateSetter lender fee"
   val RS_FINAL_FEE_TYPE = null
 
+      // REPAYMENT
   val RS_PRINCIPAL_REPAYMENT_TYPE = "Monthly repayment"
   val RS_EARLY_PRINCIPAL_REPAYMENT_TYPE = "Repaid loan capital"
   val RS_SELLOUT_TYPE = "RepaymentSellOut"
@@ -155,20 +158,6 @@ object ConcatenateFC {
   val GENERIC_INTEREST_SELLOUT_TYPE = "Sellout interest outstanding"
 
 
-  val genericEventTypes = Map(
-    GENERIC_CANCELLATION_TYPE -> Map(
-      RATESETTER -> RS_CANCELLATION_TYPE
-    ),
-    GENERIC_LOAN_PART_TYPE -> Map(
-      RATESETTER -> LOAN_OFFER_TYPE,
-      FC -> RS_LOAN_OFFER_TYPE
-    ),
-    GENERIC_LOAN_OFFER_TYPE -> Map(
-      FC -> LOAN_OFFER_TYPE
-    )
-
-  )
-
   // agnostic categories types
   val GENERIC_LOAN_CATEGORY = "LOAN"              // order ready to be matched. opposite or "Cancellation of order"
   val GENERIC_MISC_CATEGORY = "MISC"
@@ -181,32 +170,55 @@ object ConcatenateFC {
   val genericCategories = Map(
     GENERIC_LOAN_CATEGORY -> Map(
       GENERIC_CANCELLATION_TYPE -> Map(
-        RATESETTER -> RS_CANCELLATION_TYPE
+        RATESETTER -> Map(RS_CANCELLATION_TYPE -> Map())
       ),
       GENERIC_LOAN_PART_TYPE -> Map(
-        RATESETTER -> RS_LOAN_OFFER_TYPE,
-        FC -> LOAN_OFFER_TYPE
+        RATESETTER -> Map(RS_LOAN_OFFER_TYPE -> Map()),
+        FC -> Map(LOAN_OFFER_TYPE -> Map())
       )
     ),
     GENERIC_MISC_CATEGORY -> Map(
       GENERIC_LOAN_OFFER_TYPE -> Map(
-        FC -> LOAN_OFFER_TYPE
+        RATESETTER -> Map(),
+        FC -> Map(LOAN_OFFER_TYPE -> Map())
       )
     ),
     GENERIC_TRANSFER_CATEGORY -> Map(
-      RATESETTER -> Map(
-        RS_TRANSFERIN_TYPE -> Map(),
-        RS_TRANSFERIN_CARD_TYPE -> Map(),
-        RS_WITHDRAWAL_TYPE-> Map()),
-      FC -> Map(TRANSFERIN_TYPE-> Map(),WITHDRAWAL_TYPE-> Map())
+      GENERIC_TRANSFERIN_TYPE -> Map(
+          RATESETTER -> Map(RS_TRANSFERIN_TYPE -> Map()),
+          FC -> Map(TRANSFERIN_TYPE-> Map()
+        ),
+      GENERIC_TRANSFERIN_CARD_TYPE -> Map(
+        RATESETTER -> Map(RS_TRANSFERIN_CARD_TYPE -> Map()),
+        FC -> Map(TRANSFERIN_CARD_TYPE-> Map())
+      ),
+      GENERIC_WITHDRAWAL_TYPE-> Map(
+        RATESETTER -> Map(RS_WITHDRAWAL_TYPE -> Map()),
+        FC -> Map(WITHDRAWAL_TYPE-> Map()))
+      )
     ),
     GENERIC_FEE_CATEGORY -> Map(
-      RATESETTER -> Map(),
-      FC -> Map()
+      GENERIC_FEE_TYPE -> Map(
+        RATESETTER -> Map(RS_FEE_TYPE -> Map()),
+        FC -> Map(FEE_TYPE -> Map())
+
+      ),
+      GENERIC_FINAL_FEE_TYPE2 -> Map(
+        RATESETTER -> Map(),
+        FC -> Map(FINAL_FEE_TYPE2 -> Map())
+      )
     ),
     GENERIC_REPAYMENT_CATEGORY -> Map(
-      RATESETTER -> Map(),
-      FC -> Map()
+      GENERIC_PRINCIPAL_REPAYMENT_TYPE -> Map(
+        RATESETTER -> Map(RS_PRINCIPAL_REPAYMENT_TYPE -> Map()),
+        FC -> Map(PRINCIPAL_REPAYMENT_TYPE -> Map(),
+          EARLY_PRINCIPAL_REPAYMENT_TYPE -> Map()
+        )
+
+      ),
+      GENERIC_EARLY_PRINCIPAL_REPAYMENT_TYPE -> Map(),
+      GENERIC_SELLOUT_TYPE -> Map(),
+      GENERIC_PARTIAL_SELLOUT_TYPE -> Map()
     ),
     GENERIC_PRINCIPAL_RECOVERY_CATEGORY -> Map(
       RATESETTER -> Map(),
@@ -395,7 +407,7 @@ object ConcatenateFC {
 
 
     concatenate(spark )
-    
+
     spark.close()
 
   }
