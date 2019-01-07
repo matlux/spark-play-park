@@ -33,17 +33,28 @@ object ConcatenateFC {
   val PRINCIPAL_RECOVERY_REGEX_EXTRACT = "Principal recovery repayment for loan part (.+)"
 
   // Funding Circle Types or categories of transactions
-  val LOAN_OFFER_TYPE = "Loan offer"
-  val TRANSFERIN_TYPE = "TRANSFER IN"
-  val WITHDRAWAL_TYPE = "Withdrawal"
+  val CANCELLATION_TYPE = null
   val LOAN_PART_TYPE = "Loan Part"
+
+  val LOAN_OFFER_TYPE = "Loan offer"
+
+  val TRANSFERIN_TYPE = "TRANSFER IN"
+  val TRANSFERIN_CARD_TYPE = null
+
+  val WITHDRAWAL_TYPE = "Withdrawal"
+
   val FEE_TYPE = "Servicing fee"
   val FINAL_FEE_TYPE2 = "Servicing fee final"
+
   val PRINCIPAL_REPAYMENT_TYPE = "Principal repayment"
-  val INTEREST_REPAYMENT_TYPE = "Interest repayment"
   val EARLY_PRINCIPAL_REPAYMENT_TYPE = "Early principal repayment"
-  val EARLY_INTEREST_REPAYMENT_TYPE= "Early interest repayment"
+  val SELLOUT_TYPE = null
+  val PARTIAL_SELLOUT_TYPE = null
+
   val PRINCIPAL_RECOVERY_TYPE = "Principal recovery"
+
+  val INTEREST_REPAYMENT_TYPE = "Interest repayment"
+  val EARLY_INTEREST_REPAYMENT_TYPE= "Early interest repayment"
 
   val category = List(LOAN_OFFER_REGEX_EXTRACT,
     TRANSFERIN_REGEX_EXTRACT,
@@ -60,21 +71,27 @@ object ConcatenateFC {
   category.length
 
   // RateSetter Types or categories of transactions
-  val RS_CANCELLATION_TYPE = "Cancellation of order"
+  val RS_CANCELLATION_TYPE = "Cancellation of order"    // opposite or "Lend order"
+  val RS_LOAN_PART_TYPE = "Lend order"                  // order ready to be matched. opposite or "Cancellation of order", money committed
+
   val RS_LOAN_OFFER_TYPE = null
+
   val RS_TRANSFERIN_TYPE = "Bank transfer"
   val RS_TRANSFERIN_CARD_TYPE = "Card payment processed"
   val RS_WITHDRAWAL_TYPE = "Next Day Money Withdrawal request"
-  val RS_LOAN_PART_TYPE = "Lend order"
+
   val RS_FEE_TYPE = "RateSetter lender fee"
   val RS_FINAL_FEE_TYPE = null
+
   val RS_PRINCIPAL_REPAYMENT_TYPE = "Monthly repayment"
-  val RS_INTEREST_REPAYMENT_TYPE = "Interest"
   val RS_EARLY_PRINCIPAL_REPAYMENT_TYPE = "Repaid loan capital"
-  val RS_EARLY_INTEREST_REPAYMENT_TYPE= "Repaid loan interest"
+  val RS_SELLOUT_TYPE = "RepaymentSellOut"
+  val RS_PARTIAL_SELLOUT_TYPE = "PartialSelloutRepayment"
+
   val RS_PRINCIPAL_RECOVERY_TYPE = null
-  val RS_SELLOUT_TYPE = "PartialSelloutRepayment"
-  val RS_PARTIAL_SELLOUT_TYPE = "RepaymentSellOut"
+
+  val RS_INTEREST_REPAYMENT_TYPE = "Interest"
+  val RS_EARLY_INTEREST_REPAYMENT_TYPE= "Repaid loan interest"
   val RS_INTEREST_SELLOUT_TYPE = "Sellout interest outstanding"
 
 
@@ -106,71 +123,101 @@ object ConcatenateFC {
   val listOfProviders = List()
 
   // agnostic event types
+
+      // LOAN
   val GENERIC_CANCELLATION_TYPE = "Cancellation of order" // opposite or "Lend order"
   val GENERIC_LOAN_PART_TYPE = "Lend order"              // order ready to be matched. opposite or "Cancellation of order"
 
-  val GENERIC_LOAN_OFFER_TYPE = null
+      // MISC
+  val GENERIC_LOAN_OFFER_TYPE = "LOAN_OFFER"
 
+      // TRANSFER
   val GENERIC_TRANSFERIN_TYPE = "Bank transfer"
   val GENERIC_TRANSFERIN_CARD_TYPE = "Card payment processed"
   val GENERIC_WITHDRAWAL_TYPE = "Next Day Money Withdrawal request"
 
-  val GENERIC_FEE_TYPE = "RateSetter lender fee"
-  val GENERIC_FINAL_FEE_TYPE2 = null
+      // FEE
+  val GENERIC_FEE_TYPE = "FEE"
+  val GENERIC_FINAL_FEE_TYPE2 = "FINAL_FEE"
 
-  val GENERIC_PRINCIPAL_REPAYMENT_TYPE = "Monthly repayment"
-  val GENERIC_EARLY_PRINCIPAL_REPAYMENT_TYPE = "Repaid loan capital"
-  val GENERIC_SELLOUT_TYPE = "PartialSelloutRepayment"
-  val GENERIC_PARTIAL_SELLOUT_TYPE = "RepaymentSellOut"
+      // REPAYMENT
+  val GENERIC_PRINCIPAL_REPAYMENT_TYPE = "Monthly PRINCIPAL_REPAYMENT"
+  val GENERIC_EARLY_PRINCIPAL_REPAYMENT_TYPE = "EARLY_PRINCIPAL_REPAYMENT"
+  val GENERIC_SELLOUT_TYPE = "RepaymentSellOut"
+  val GENERIC_PARTIAL_SELLOUT_TYPE = "PartialSelloutRepayment"
 
+      // RECOVERY
   val GENERIC_PRINCIPAL_RECOVERY_TYPE = null
 
+      // INTEREST
   val GENERIC_INTEREST_REPAYMENT_TYPE = "Interest"
   val GENERIC_EARLY_INTEREST_REPAYMENT_TYPE= "Repaid loan interest"
   val GENERIC_INTEREST_SELLOUT_TYPE = "Sellout interest outstanding"
 
-  
+
   val genericEventTypes = Map(
     GENERIC_CANCELLATION_TYPE -> Map(
-      RATESETTER -> Some(RS_CANCELLATION_TYPE),
-      FC -> None
+      RATESETTER -> RS_CANCELLATION_TYPE
+    ),
+    GENERIC_LOAN_PART_TYPE -> Map(
+      RATESETTER -> LOAN_OFFER_TYPE,
+      FC -> RS_LOAN_OFFER_TYPE
     ),
     GENERIC_LOAN_OFFER_TYPE -> Map(
-      RATESETTER -> None,
-      FC -> Some(LOAN_OFFER_TYPE)
-    ),
-    GENERIC_LOAN_OFFER_TYPE -> Map(
-      RATESETTER -> None,
-      FC -> Some(LOAN_OFFER_TYPE)
+      FC -> LOAN_OFFER_TYPE
     )
 
   )
 
   // agnostic categories types
-  val GENERIC_CANCELLATION_CATEGORY = "Cancellation of order" // opposite or "Lend order"
-  val GENERIC_LOAN_PART_CATEGORY = "Lend order"              // order ready to be matched. opposite or "Cancellation of order"
+  val GENERIC_LOAN_CATEGORY = "LOAN"              // order ready to be matched. opposite or "Cancellation of order"
+  val GENERIC_MISC_CATEGORY = "MISC"
+  val GENERIC_TRANSFER_CATEGORY = "TRANSFER"
+  val GENERIC_FEE_CATEGORY = "FEE"
+  val GENERIC_REPAYMENT_CATEGORY = "REPAYMENT"
+  val GENERIC_PRINCIPAL_RECOVERY_CATEGORY = "RECOVERY"
+  val GENERIC_INTEREST_CATEGORY = "INTEREST"
 
-  val GENERIC_LOAN_OFFER_CATEGORY = null
+  val genericCategories = Map(
+    GENERIC_LOAN_CATEGORY -> Map(
+      GENERIC_CANCELLATION_TYPE -> Map(
+        RATESETTER -> RS_CANCELLATION_TYPE
+      ),
+      GENERIC_LOAN_PART_TYPE -> Map(
+        RATESETTER -> RS_LOAN_OFFER_TYPE,
+        FC -> LOAN_OFFER_TYPE
+      )
+    ),
+    GENERIC_MISC_CATEGORY -> Map(
+      GENERIC_LOAN_OFFER_TYPE -> Map(
+        FC -> LOAN_OFFER_TYPE
+      )
+    ),
+    GENERIC_TRANSFER_CATEGORY -> Map(
+      RATESETTER -> Map(
+        RS_TRANSFERIN_TYPE -> Map(),
+        RS_TRANSFERIN_CARD_TYPE -> Map(),
+        RS_WITHDRAWAL_TYPE-> Map()),
+      FC -> Map(TRANSFERIN_TYPE-> Map(),WITHDRAWAL_TYPE-> Map())
+    ),
+    GENERIC_FEE_CATEGORY -> Map(
+      RATESETTER -> Map(),
+      FC -> Map()
+    ),
+    GENERIC_REPAYMENT_CATEGORY -> Map(
+      RATESETTER -> Map(),
+      FC -> Map()
+    ),
+    GENERIC_PRINCIPAL_RECOVERY_CATEGORY -> Map(
+      RATESETTER -> Map(),
+      FC -> Map()
+    ),
+    GENERIC_INTEREST_CATEGORY -> Map(
+      RATESETTER -> Map(),
+      FC -> Map()
+    )
 
-  val GENERIC_TRANSFERIN_CATEGORY = "Bank transfer"
-  val GENERIC_TRANSFERIN_CARD_CATEGORY = "Card payment processed"
-  val GENERIC_WITHDRAWAL_CATEGORY = "Next Day Money Withdrawal request"
-
-  val GENERIC_FEE_CATEGORY = "RateSetter lender fee"
-  val GENERIC_FINAL_FEE_CATEGORY2 = null
-
-  val GENERIC_PRINCIPAL_REPAYMENT_CATEGORY = "Monthly repayment"
-  val GENERIC_EARLY_PRINCIPAL_REPAYMENT_CATEGORY = "Repaid loan capital"
-  val GENERIC_SELLOUT_CATEGORY = "PartialSelloutRepayment"
-  val GENERIC_PARTIAL_SELLOUT_CATEGORY = "RepaymentSellOut"
-
-  val GENERIC_PRINCIPAL_RECOVERY_CATEGORY = null
-
-  val GENERIC_INTEREST_REPAYMENT_CATEGORY = "Interest"
-  val GENERIC_EARLY_INTEREST_REPAYMENT_CATEGORY = "Repaid loan interest"
-  val GENERIC_INTEREST_SELLOUT_CATEGORY = "Sellout interest outstanding"
-
-
+  )
 
   val KEY_TRANSACTION = "11922194"
 
@@ -348,6 +395,8 @@ object ConcatenateFC {
 
 
     concatenate(spark )
+    
+    spark.close()
 
   }
 
