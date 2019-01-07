@@ -61,7 +61,7 @@ object SparkIngestion {
     val opts = Map("header" -> "true",
                     "timestampFormat" -> "dd/MM/yyyy",
                     "inferSchema" -> "true")
-    val df0 = spark.read.options(opts).csv(inputData + "/Matlux_rate-setter_LenderTransactions_all_2017-07-31.csv")
+    val df0 = spark.read.options(opts).csv(inputData + "/Matlux_rate-setter_LenderTransactions_all_2014-03-24_2018-11-29.csv")
 
 
 
