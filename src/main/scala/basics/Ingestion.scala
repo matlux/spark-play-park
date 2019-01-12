@@ -65,9 +65,11 @@ object SparkIngestion {
 
 
 
-
+//dfrs0
     val df = df0.withColumn("month",month(column("date"))).withColumn("year",year(column("date")))
     //val df = spark.read.parquet("/home/mathieu/datashare/hdfs/parquet/test3")
+
+    //val df0 = dfrs0.filter(column("date").gt(lit("2018-04-05"))).show
 
     df.filter(column("year")==="2014").groupBy("year","month","type").sum("amount","capital","interest","fee").sort("year","month").show()
     df.filter(column("year")==="2014").groupBy("year","month","type").sum("amount").sort("year","month").show()
@@ -86,6 +88,7 @@ object SparkIngestion {
       withColumn("cum fee",sum(pivotedReport("RateSetter lender fee")).over(wSpec2)).
       select("year","month","Bank transfer","cum BT","Interest","cum interest","RateSetter lender fee","cum fee")
 
+    finalReport.show(50,false)
     pivotedReport.withColumn("cum BT",sum(pivotedReport("Bank transfer")).over(wSpec2)).
       withColumn("cum interest",sum(pivotedReport("Interest")).over(wSpec2)).
       withColumn("cum fee",sum(pivotedReport("RateSetter lender fee")).over(wSpec2)).

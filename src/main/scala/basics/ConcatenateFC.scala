@@ -8,6 +8,7 @@ import net.matlux.core.Show
 import org.apache.spark.sql.{Column, DataFrame, SaveMode, SparkSession}
 import org.apache.spark.sql.types._
 import org.apache.spark.sql.functions._
+import net.matlux.report.Generic._
 
 
 // https://p2pblog.co.uk/uk-p2p-self-assessment-taxes/
@@ -72,46 +73,6 @@ object ConcatenateFC {
   val listOfProviders = List(RATESETTER,FC)
 
 
-  val genericCategories = Map(
-    GENERIC_LOAN_CATEGORY -> Map(
-      GENERIC_CANCELLATION_TYPE -> Map(),
-      GENERIC_LOAN_PART_TYPE -> Map()
-    ),
-    GENERIC_MISC_CATEGORY -> Map(
-      GENERIC_LOAN_OFFER_TYPE -> Map()
-    ),
-    GENERIC_TRANSFER_CATEGORY -> Map(
-      GENERIC_TRANSFERIN_TYPE -> Map(),
-      GENERIC_TRANSFERIN_CARD_TYPE -> Map(),
-      GENERIC_WITHDRAWAL_TYPE-> Map()
-    ),
-    GENERIC_FEE_CATEGORY -> Map(
-      GENERIC_FEE_TYPE -> Map(),
-      GENERIC_FINAL_FEE_TYPE2 -> Map()
-    ),
-    GENERIC_REPAYMENT_CATEGORY -> Map(
-      GENERIC_PRINCIPAL_REPAYMENT_TYPE -> Map(),
-      GENERIC_EARLY_PRINCIPAL_REPAYMENT_TYPE -> Map(),
-      GENERIC_SELLOUT_TYPE -> Map(),
-      GENERIC_PARTIAL_SELLOUT_TYPE -> Map()
-    ),
-    GENERIC_PRINCIPAL_RECOVERY_CATEGORY -> Map(
-      GENERIC_PRINCIPAL_RECOVERY_TYPE -> Map()
-    ),
-
-    GENERIC_INTEREST_CATEGORY -> Map(
-      GENERIC_INTEREST_REPAYMENT_TYPE -> Map(),
-      GENERIC_EARLY_INTEREST_REPAYMENT_TYPE -> Map(),
-      GENERIC_INTEREST_SELLOUT_TYPE -> Map()
-    )
-  )
-
-  val GenericType2Category = for{
-    cat <- genericCategories
-    atype <- cat._2
-  } yield (atype._1 -> cat._1)
-
-
   // Funding Circle Regexes
   val LOAN_PART_REGEX_EXTRACT = "Loan Part ID (.+) : Principal (.+), Interest (.+), Delta (.+), Fee (.+)"
 
@@ -133,27 +94,27 @@ object ConcatenateFC {
 
   // Funding Circle Types or categories of transactions
   //val CANCELLATION_TYPE = null
-  val LOAN_PART_TYPE = "Loan Part"
+  val FC_LOAN_PART_TYPE = "Loan Part"
 
-  val LOAN_OFFER_TYPE = "Loan offer"
+  val FC_LOAN_OFFER_TYPE = "Loan offer"
 
-  val TRANSFERIN_TYPE = "TRANSFER IN"
+  val FC_TRANSFERIN_TYPE = "TRANSFER IN"
   //val TRANSFERIN_CARD_TYPE = null
-  val WITHDRAWAL_TYPE = "Withdrawal"
+  val FC_WITHDRAWAL_TYPE = "Withdrawal"
 
-  val FEE_TYPE = "Servicing fee"
-  val FINAL_FEE_TYPE2 = "Servicing fee final"
+  val FC_FEE_TYPE = "Servicing fee"
+  val FC_FINAL_FEE_TYPE2 = "Servicing fee final"
 
       // REPAYMENT
-  val PRINCIPAL_REPAYMENT_TYPE = "Principal repayment"
-  val EARLY_PRINCIPAL_REPAYMENT_TYPE = "Early principal repayment"
+  val FC_PRINCIPAL_REPAYMENT_TYPE = "Principal repayment"
+  val FC_EARLY_PRINCIPAL_REPAYMENT_TYPE = "Early principal repayment"
   //val SELLOUT_TYPE = null
   //val PARTIAL_SELLOUT_TYPE = null
 
-  val PRINCIPAL_RECOVERY_TYPE = "Principal recovery"
+  val FC_PRINCIPAL_RECOVERY_TYPE = "Principal recovery"
 
-  val INTEREST_REPAYMENT_TYPE = "Interest repayment"
-  val EARLY_INTEREST_REPAYMENT_TYPE= "Early interest repayment"
+  val FC_INTEREST_REPAYMENT_TYPE = "Interest repayment"
+  val FC_EARLY_INTEREST_REPAYMENT_TYPE = "Early interest repayment"
 
 
   // KEYs
@@ -162,32 +123,32 @@ object ConcatenateFC {
   val FcTypes2GenericTypes = Map(
     // LOAN
 //    CANCELLATION_TYPE -> Map(GENERIC_CANCELLATION_TYPE -> Map()),
-    LOAN_PART_TYPE -> Map(GENERIC_LOAN_PART_TYPE -> Map(EXTRACT_REGEX -> LOAN_PART_REGEX_EXTRACT)),
+    FC_LOAN_PART_TYPE -> Map(GENERIC_LOAN_PART_TYPE -> Map(EXTRACT_REGEX -> LOAN_PART_REGEX_EXTRACT)),
 
     // MISC
-    LOAN_OFFER_TYPE -> Map(GENERIC_LOAN_OFFER_TYPE -> Map(EXTRACT_REGEX -> LOAN_OFFER_REGEX_EXTRACT)),
+    FC_LOAN_OFFER_TYPE -> Map(GENERIC_LOAN_OFFER_TYPE -> Map(EXTRACT_REGEX -> LOAN_OFFER_REGEX_EXTRACT)),
 
     // TRANSFER
-    TRANSFERIN_TYPE -> Map(GENERIC_TRANSFERIN_TYPE -> Map(EXTRACT_REGEX -> TRANSFERIN_REGEX_EXTRACT)),
+    FC_TRANSFERIN_TYPE -> Map(GENERIC_TRANSFERIN_TYPE -> Map(EXTRACT_REGEX -> TRANSFERIN_REGEX_EXTRACT)),
 //    TRANSFERIN_CARD_TYPE -> Map(GENERIC_TRANSFERIN_CARD_TYPE -> Map()),
-    WITHDRAWAL_TYPE -> Map(GENERIC_WITHDRAWAL_TYPE -> Map(EXTRACT_REGEX -> WITHDRAWAL_REGEX_EXTRACT)),
+    FC_WITHDRAWAL_TYPE -> Map(GENERIC_WITHDRAWAL_TYPE -> Map(EXTRACT_REGEX -> WITHDRAWAL_REGEX_EXTRACT)),
 
     // FEE
-    FEE_TYPE -> Map(GENERIC_FEE_TYPE -> Map(EXTRACT_REGEX -> SERVICING_FEE_REGEX_EXTRACT)),
-    FINAL_FEE_TYPE2 -> Map(GENERIC_FINAL_FEE_TYPE2 -> Map(EXTRACT_REGEX -> SERVICING_FEE_REGEX_EXTRACT2)),
+    FC_FEE_TYPE -> Map(GENERIC_FEE_TYPE -> Map(EXTRACT_REGEX -> SERVICING_FEE_REGEX_EXTRACT)),
+    FC_FINAL_FEE_TYPE2 -> Map(GENERIC_FINAL_FEE_TYPE2 -> Map(EXTRACT_REGEX -> SERVICING_FEE_REGEX_EXTRACT2)),
 
     // REPAYMENT
-    PRINCIPAL_REPAYMENT_TYPE -> Map(GENERIC_PRINCIPAL_REPAYMENT_TYPE -> Map(EXTRACT_REGEX -> PRINCIPAL_REPAYMENT_REGEX_EXTRACT)),
-    EARLY_PRINCIPAL_REPAYMENT_TYPE -> Map(GENERIC_EARLY_PRINCIPAL_REPAYMENT_TYPE -> Map(EXTRACT_REGEX -> EARLY_PRINCIPAL_REPAYMENT_REGEX_EXTRACT)),
+    FC_PRINCIPAL_REPAYMENT_TYPE -> Map(GENERIC_PRINCIPAL_REPAYMENT_TYPE -> Map(EXTRACT_REGEX -> PRINCIPAL_REPAYMENT_REGEX_EXTRACT)),
+    FC_EARLY_PRINCIPAL_REPAYMENT_TYPE -> Map(GENERIC_EARLY_PRINCIPAL_REPAYMENT_TYPE -> Map(EXTRACT_REGEX -> EARLY_PRINCIPAL_REPAYMENT_REGEX_EXTRACT)),
 //    SELLOUT_TYPE -> Map(GENERIC_SELLOUT_TYPE -> Map()),
 
     // RECOVERY
 //    PARTIAL_SELLOUT_TYPE -> Map(GENERIC_PARTIAL_SELLOUT_TYPE -> Map()),
-    PRINCIPAL_RECOVERY_TYPE -> Map(GENERIC_PRINCIPAL_RECOVERY_TYPE -> Map(EXTRACT_REGEX -> PRINCIPAL_RECOVERY_REGEX_EXTRACT)),
+    FC_PRINCIPAL_RECOVERY_TYPE -> Map(GENERIC_PRINCIPAL_RECOVERY_TYPE -> Map(EXTRACT_REGEX -> PRINCIPAL_RECOVERY_REGEX_EXTRACT)),
 
     // INTEREST
-    INTEREST_REPAYMENT_TYPE -> Map(GENERIC_INTEREST_REPAYMENT_TYPE -> Map(EXTRACT_REGEX -> INTEREST_REPAYMENT_REGEX_EXTRACT)),
-    EARLY_INTEREST_REPAYMENT_TYPE -> Map(GENERIC_EARLY_INTEREST_REPAYMENT_TYPE -> Map(EXTRACT_REGEX -> EARLY_INTEREST_REPAYMENT_REGEX_EXTRACT))
+    FC_INTEREST_REPAYMENT_TYPE -> Map(GENERIC_INTEREST_REPAYMENT_TYPE -> Map(EXTRACT_REGEX -> INTEREST_REPAYMENT_REGEX_EXTRACT)),
+    FC_EARLY_INTEREST_REPAYMENT_TYPE -> Map(GENERIC_EARLY_INTEREST_REPAYMENT_TYPE -> Map(EXTRACT_REGEX -> EARLY_INTEREST_REPAYMENT_REGEX_EXTRACT))
   )
 
   Show(FcTypes2GenericTypes)
@@ -321,7 +282,7 @@ object ConcatenateFC {
 
   def concatenate(spark : SparkSession): Unit = {
 
-    val decimalType : DecimalType = DataTypes.createDecimalType(15, 2)
+    val decimalType: DecimalType = DataTypes.createDecimalType(15, 2)
 
     val customSchema = StructType(Array(
       StructField("Date", DateType, true),
@@ -329,7 +290,7 @@ object ConcatenateFC {
       StructField("Paid In", decimalType, true),
       StructField("Paid Out", decimalType, true)))
 
-    val listFiles = getListOfFiles(new File(inputData),List("csv")).filter(f =>  f.getName.matches("Matlux_funding-circles_.*")).sorted
+    val listFiles = getListOfFiles(new File(inputData), List("csv")).filter(f => f.getName.matches("Matlux_funding-circles_.*")).sorted
 
     val dateRange = listFiles.flatMap(f =>
       "Matlux_funding-circles_(.*)_\\d{4}-\\d{2}-.._..-..-..\\.csv".r.findFirstMatchIn(f.getName) match {
@@ -341,13 +302,12 @@ object ConcatenateFC {
     dateRange.last
 
 
-
     val dfs = listFiles.map(f =>
       spark.read.format("csv")
         .options(opts)
         .schema(customSchema)
         .csv(f.getCanonicalPath))
-    val df00 = dfs.reduceLeft((acc,df) => acc.union(df)).sort(asc("Date"),desc("Paid In"))
+    val df00 = dfs.reduceLeft((acc, df) => acc.union(df)).sort(asc("Date"), desc("Paid In"))
     //val dfs = listFiles.map(f => spark.read.options(opts).csv(f.getCanonicalPath))
     //val df = spark.read.options(opts).csv(inputData + "/Matlux_rate-setter_LenderTransactions_all_2017-07-31.csv")
 
@@ -364,91 +324,105 @@ object ConcatenateFC {
       StructField("Interest", decimalType, true),
       StructField("Fee", decimalType, true)
     ))
-    val dfrs0 = spark.read.format("csv").options(optsrs).schema(customSchemaRs).csv(inputData + "/../Matlux_rate-setter_LenderTransactions_all_2014-03-24_2018-11-29.csv")
+    //val ratesetterFile = "/../Matlux_rate-setter_LenderTransactions_all_2014-03-24_2018-11-29.csv"
+    val ratesetterFile = "/../Mathieu_rate-setter_classic_all_2016-07-19_2019-01-10.csv"
+    val dfrs0 = spark.read.format("csv").options(optsrs).schema(customSchemaRs).csv(inputData + ratesetterFile)
 
 
     val df0File = outputData + f"/Matlux_funding-circles_test_${dateRange.head}_${dateRange.last}.cvs"
     val df0 = spark.read.format("csv").options(opts).schema(customSchema).csv(df0File)
 
     //dfrs0.select(col("Type")).distinct.show(50,false)
-    dfrs0.show(50,false)
-    dfrs0.groupBy(col("Type")).agg(count(col("Type")),first("Amount")).show(50,false)
+    dfrs0.show(50, false)
+    dfrs0.groupBy(col("Type")).agg(count(col("Type")), first("Amount")).show(50, false)
 
     dfrs0.printSchema()
-    dfrs0.filter(col("Amount").rlike("1502.88")).sort(asc("Date"),desc("Amount")).show(500,false)
-    dfrs0.filter(col("Type").rlike("Cancellation of order")).show(500,false)
+    dfrs0.filter(col("Amount").rlike("1502.88")).sort(asc("Date"), desc("Amount")).show(500, false)
+    dfrs0.filter(col("Type").rlike("Cancellation of order")).show(500, false)
 
-    dfrs0.filter(col("Type").rlike("Bank transfer")).show(500,false)
-    dfrs0.filter(col("Type").rlike("RepaymentSellOut")).show(500,false)
-    dfrs0.filter(col("Type").rlike("Card payment processed")).show(500,false)
-    dfrs0.filter(col("Type").rlike("PartialSelloutRepayment")).show(500,false)
-    dfrs0.filter(col("Type").rlike("Monthly repayment")).show(500,false)
-    dfrs0.filter(col("Type").rlike("Repaid loan capital")).show(500,false)
-    dfrs0.filter(col("Type").rlike("PartialSelloutRepayment")).show(500,false)
-    dfrs0.filter(col("Item").rlike("C365366711357")).show(500,false)
-    dfrs0.filter(col("Item").rlike("C341518375920")).show(500,false)
+    dfrs0.filter(col("Type").rlike("Bank transfer")).show(500, false)
+    dfrs0.filter(col("Type").rlike("RepaymentSellOut")).show(500, false)
+    dfrs0.filter(col("Type").rlike("Card payment processed")).show(500, false)
+    dfrs0.filter(col("Type").rlike("PartialSelloutRepayment")).show(500, false)
+    dfrs0.filter(col("Type").rlike("Monthly repayment")).show(500, false)
+    dfrs0.filter(col("Type").rlike("Repaid loan capital")).show(500, false)
+    dfrs0.filter(col("Type").rlike("PartialSelloutRepayment")).show(500, false)
+    dfrs0.filter(col("Item").rlike("C365366711357")).show(500, false)
+    dfrs0.filter(col("Item").rlike("C341518375920")).show(500, false)
 
-    df0.sort(asc("Date"),desc("Paid In"),desc("Paid Out")).show(50,false)
+    df0.sort(asc("Date"), desc("Paid In"), desc("Paid Out")).show(50, false)
     df0.count()
 
-    df0.filter(col("Description").rlike("11922194")).sort(asc("Date"),desc("Paid In")).show(500,false)
-    df0.filter(col("Description").rlike(SERVICING_FEE_REGEX_EXTRACT2)).sort(asc("Date"),desc("Paid In")).show(7000,false)
+    df0.filter(col("Description").rlike("11922194")).sort(asc("Date"), desc("Paid In")).show(500, false)
+    df0.filter(col("Description").rlike(SERVICING_FEE_REGEX_EXTRACT2)).sort(asc("Date"), desc("Paid In")).show(7000, false)
     df0.filter(col("Description").rlike(SERVICING_FEE_REGEX_EXTRACT2)).count
     df0.filter(col("Description").rlike("Interest repayment")).count
-    df0.filter(col("Description").rlike(LOAN_OFFER_REGEX_EXTRACT)).sort(asc("Date"),desc("Paid In")).show(500,false)
-    df0.filter(col("Description").rlike(TRANSFERIN_REGEX_EXTRACT)).sort(asc("Date"),desc("Paid In")).show(500,false)
-    df0.filter(col("Description").rlike(WITHDRAWAL_REGEX_EXTRACT)).sort(asc("Date"),desc("Paid In")).show(500,false)
-    df0.filter(col("Description").rlike(LOAN_PART_REGEX_EXTRACT)).sort(asc("Date"),desc("Paid In")).show(500,false)
-    df0.filter(col("Description").rlike(SERVICING_FEE_REGEX_EXTRACT)).sort(asc("Date"),desc("Paid In")).show(500,false)
-    df0.filter(col("Description").rlike(PRINCIPAL_REPAYMENT_REGEX_EXTRACT)).sort(asc("Date"),desc("Paid In")).show(500,false)
-    df0.filter(col("Description").rlike(INTEREST_REPAYMENT_REGEX_EXTRACT)).sort(asc("Date"),desc("Paid In")).show(500,false)
-
+    df0.filter(col("Description").rlike(LOAN_OFFER_REGEX_EXTRACT)).sort(asc("Date"), desc("Paid In")).show(500, false)
+    df0.filter(col("Description").rlike(TRANSFERIN_REGEX_EXTRACT)).sort(asc("Date"), desc("Paid In")).show(500, false)
+    df0.filter(col("Description").rlike(WITHDRAWAL_REGEX_EXTRACT)).sort(asc("Date"), desc("Paid In")).show(500, false)
+    df0.filter(col("Description").rlike(LOAN_PART_REGEX_EXTRACT)).sort(asc("Date"), desc("Paid In")).show(500, false)
+    df0.filter(col("Description").rlike(SERVICING_FEE_REGEX_EXTRACT)).sort(asc("Date"), desc("Paid In")).show(500, false)
+    df0.filter(col("Description").rlike(PRINCIPAL_REPAYMENT_REGEX_EXTRACT)).sort(asc("Date"), desc("Paid In")).show(500, false)
+    df0.filter(col("Description").rlike(INTEREST_REPAYMENT_REGEX_EXTRACT)).sort(asc("Date"), desc("Paid In")).show(500, false)
 
 
     category.map(cat => df0.filter(col("Description").rlike(cat)).count).sum
 
 
-    val dfcat = category.map(cat => df0.filter(col("Description").rlike(cat))).reduceLeft((acc,df) => acc.union(df))
-      dfcat.count
+    val dfcat = category.map(cat => df0.filter(col("Description").rlike(cat))).reduceLeft((acc, df) => acc.union(df))
+    dfcat.count
 
-    df0.except(dfcat).sort(asc("Date"),desc("Paid In")).show(500,false)
+    df0.except(dfcat).sort(asc("Date"), desc("Paid In")).show(500, false)
 
-    df0.filter(col("Description").rlike("Loan offer")).agg(sum("Paid Out")).show(500,false)
+    df0.filter(col("Description").rlike("Loan offer")).agg(sum("Paid Out")).show(500, false)
 
-    val (isCorrect,missingElements) =  validateCategorisation(df0)
-    if(!isCorrect) missingElements.show(50,false)
-    if(isCorrect) println("correct")
+    val (isCorrect, missingElements) = validateCategorisation(df0)
+    if (!isCorrect) missingElements.show(50, false)
+    if (isCorrect) println("correct")
 
     //val df = df0.withColumn("Type",when(column("Description").rlike(LOAN_PART_REGEX_EXTRACT)),lit("loan"))
 
 
-
     GenericType2Category("Monthly PRINCIPAL_REPAYMENT gen type")
+    def pred(like : String) = {
+      //col("Paid Out").equalTo(col("Principal")).or(col("Paid Out").equalTo(col("Interest")))
+      col("Description").rlike(like)
+    }
+
+    def fcType(): Column = {
+      when(pred(FC_LOAN_PART_TYPE), lit(FC_LOAN_PART_TYPE)).or(when(pred(FC_TRANSFERIN_TYPE), lit(FC_TRANSFERIN_TYPE)))
+    }
+    def genType(): Column = {
+      when(pred(FC_LOAN_PART_TYPE), lit(GENERIC_LOAN_PART_TYPE)).or(when(pred(FC_TRANSFERIN_TYPE), lit()))
+    }
+    def genCat(): Column = {
+      when(pred(FC_LOAN_PART_TYPE), lit(GENERIC_LOAN_CATEGORY)).or(when(pred(FC_TRANSFERIN_TYPE), lit(FC_TRANSFERIN_TYPE)))
+    }
 
     val df = df0
-    val df2 = df.withColumn("Loan Part ID",when(col("Description").rlike(LOAN_PART_REGEX_EXTRACT)
-      ,regexp_replace(col("Description"),LOAN_PART_REGEX_EXTRACT,"$1")) ).
-        withColumn("Principal",when(col("Description").rlike(LOAN_PART_REGEX_EXTRACT)
-          ,regexp_replace(col("Description"),LOAN_PART_REGEX_EXTRACT,"$2")) ).
-      withColumn("Interest",when(col("Description").rlike(LOAN_PART_REGEX_EXTRACT)
-      ,regexp_replace(col("Description"),LOAN_PART_REGEX_EXTRACT,"$3")) ).
-      withColumn("Delta",when(col("Description").rlike(LOAN_PART_REGEX_EXTRACT)
-      ,regexp_replace(col("Description"),LOAN_PART_REGEX_EXTRACT,"$4")) ).withColumn("Fee",when(col("Description").rlike(LOAN_PART_REGEX_EXTRACT)
-      ,regexp_replace(col("Description"),LOAN_PART_REGEX_EXTRACT,"$5")) ).
-      withColumn("FC type",when(col("Paid Out").equalTo(col("Principal")).or(col("Paid Out").equalTo(col("Interest"))),lit(LOAN_PART_TYPE))).
-      withColumn("type",when(col("Paid Out").equalTo(col("Principal")).or(col("Paid Out").equalTo(col("Interest"))),lit(GENERIC_LOAN_PART_TYPE))).
-      withColumn("cat",when(col("Paid Out").equalTo(col("Principal")).or(col("Paid Out").equalTo(col("Interest"))),lit(GENERIC_LOAN_CATEGORY)))
+    val df2 = df.withColumn("Loan Part ID", when(col("Description").rlike(LOAN_PART_REGEX_EXTRACT)
+      , regexp_replace(col("Description"), LOAN_PART_REGEX_EXTRACT, "$1"))).
+      withColumn("Principal", when(col("Description").rlike(LOAN_PART_REGEX_EXTRACT)
+        , regexp_replace(col("Description"), LOAN_PART_REGEX_EXTRACT, "$2"))).
+      withColumn("Interest", when(col("Description").rlike(LOAN_PART_REGEX_EXTRACT)
+        , regexp_replace(col("Description"), LOAN_PART_REGEX_EXTRACT, "$3"))).
+      withColumn("Delta", when(col("Description").rlike(LOAN_PART_REGEX_EXTRACT)
+        , regexp_replace(col("Description"), LOAN_PART_REGEX_EXTRACT, "$4"))).withColumn("Fee", when(col("Description").rlike(LOAN_PART_REGEX_EXTRACT)
+      , regexp_replace(col("Description"), LOAN_PART_REGEX_EXTRACT, "$5"))).
+      withColumn("FC type", fcType()).
+      withColumn("type", genType).
+      withColumn("cat", genCat)
 
     //df2.count()
-    df2.sort(asc("Date"),desc("Paid In")).show(50,false)
+    df2.sort(asc("Date"), desc("Paid In")).show(50, false)
 
     FcTypes2Regex
 
     val df4 = df
 
-    val df3 = df.withColumn("Interest",when(col("Description").rlike(LOAN_PART_REGEX_EXTRACT)
-        ,regexp_replace(col("Description"),LOAN_PART_REGEX_EXTRACT,"$3")) ).sort(asc("Date"),desc("Paid In"))
-    df3.select().show(50,false)
+    val df3 = df.withColumn("Interest", when(col("Description").rlike(LOAN_PART_REGEX_EXTRACT)
+      , regexp_replace(col("Description"), LOAN_PART_REGEX_EXTRACT, "$3"))).sort(asc("Date"), desc("Paid In"))
+    df3.select().show(50, false)
 
     val cols2 = df2.columns.toSet
     val cols3 = df3.columns.toSet
