@@ -3,12 +3,14 @@ package basics
 
 import java.io.File
 
-import basics.ConcatenateFC.FC
 import net.matlux.core.Show
 import org.apache.spark.sql.{Column, DataFrame, SaveMode, SparkSession}
 import org.apache.spark.sql.types._
 import org.apache.spark.sql.functions._
 import net.matlux.report.Generic._
+import net.matlux.report.FundingCircle._
+import net.matlux.report.RateSetter._
+import net.matlux.report.Core._
 
 
 // https://p2pblog.co.uk/uk-p2p-self-assessment-taxes/
@@ -22,149 +24,19 @@ object ConcatenateFC {
   val inputData = "/home/mathieu/Dropbox/Finance/investment-transactions/fundingCircleMonthly"
   val outputData = "/home/mathieu/Dropbox/Finance/investment-transactions/"
 
-  // agnostic event types
-
-  // LOAN
-  val GENERIC_CANCELLATION_TYPE = "Cancellation of order gen type" // opposite or "Lend order"
-  val GENERIC_LOAN_PART_TYPE = "LOAN_PART gen type"              // order ready to be matched. opposite or "Cancellation of order"
-
-  // MISC
-  val GENERIC_LOAN_OFFER_TYPE = "LOAN_OFFER gen type"
-
-  // TRANSFER
-  val GENERIC_TRANSFERIN_TYPE = "Bank transfer gen type"
-  val GENERIC_TRANSFERIN_CARD_TYPE = "Card payment processed gen type"
-  val GENERIC_WITHDRAWAL_TYPE = "Next Day Money Withdrawal request gen type"
-
-  // FEE
-  val GENERIC_FEE_TYPE = "FEE gen type"
-  val GENERIC_FINAL_FEE_TYPE2 = "FINAL_FEE gen type"
-
-  // REPAYMENT
-  val GENERIC_PRINCIPAL_REPAYMENT_TYPE = "Monthly PRINCIPAL_REPAYMENT gen type"
-  val GENERIC_EARLY_PRINCIPAL_REPAYMENT_TYPE = "EARLY_PRINCIPAL_REPAYMENT gen type"
-  val GENERIC_SELLOUT_TYPE = "RepaymentSellOut gen type"
-  val GENERIC_PARTIAL_SELLOUT_TYPE = "PartialSelloutRepayment gen type"
-
-  // RECOVERY
-  val GENERIC_PRINCIPAL_RECOVERY_TYPE = "PRINCIPAL_RECOVERY gen type"
-
-  // INTEREST
-  val GENERIC_INTEREST_REPAYMENT_TYPE = "Interest"
-  val GENERIC_EARLY_INTEREST_REPAYMENT_TYPE= "EARLY_INTEREST_REPAYMENT gen type"
-  val GENERIC_INTEREST_SELLOUT_TYPE = "INTEREST_SELLOUT gen type"
 
 
-  // agnostic categories types
-  val GENERIC_LOAN_CATEGORY = "LOAN cat"              // order ready to be matched. opposite or "Cancellation of order"
-  val GENERIC_MISC_CATEGORY = "MISC cat"
-  val GENERIC_TRANSFER_CATEGORY = "TRANSFER cat"
-  val GENERIC_FEE_CATEGORY = "FEE cat"
-  val GENERIC_REPAYMENT_CATEGORY = "REPAYMENT cat"
-  val GENERIC_PRINCIPAL_RECOVERY_CATEGORY = "RECOVERY cat"
-  val GENERIC_INTEREST_CATEGORY = "INTEREST cat"
 
 
-  // providers
-  val RATESETTER = "Ratesetter"
-  val FC = "Funding Circle"
 
-
-  val listOfProviders = List(RATESETTER,FC)
-
-
-  // Funding Circle Regexes
-  val LOAN_PART_REGEX_EXTRACT = "Loan Part ID (.+) : Principal (.+), Interest (.+), Delta (.+), Fee (.+)"
-
-  val LOAN_OFFER_REGEX_EXTRACT = "Loan offer on (.+) - (.+)"
-
-  val TRANSFERIN_REGEX_EXTRACT = "EPDQ ID: (.+) - TRANSFERIN ORDERID: (.+)"
-  val WITHDRAWAL_REGEX_EXTRACT = "FC Len Withdrawal"
-
-  val SERVICING_FEE_REGEX_EXTRACT = "Servicing fee for Loan ID N/A; Loan Part ID (.+); Investor ID (.+)"
-  val SERVICING_FEE_REGEX_EXTRACT2 = "Servicing fee for loan part (.+)"
-
-  val PRINCIPAL_REPAYMENT_REGEX_EXTRACT = "Principal repayment for loan part (.+)"
-  val EARLY_PRINCIPAL_REPAYMENT_REGEX_EXTRACT = "Early principal repayment for loan part (.+)"
-
-  val PRINCIPAL_RECOVERY_REGEX_EXTRACT = "Principal recovery repayment for loan part (.+)"
-
-  val INTEREST_REPAYMENT_REGEX_EXTRACT = "Interest repayment for loan part (.+)"
-  val EARLY_INTEREST_REPAYMENT_REGEX_EXTRACT = "Early interest repayment for loan part (.+)"
-
-  // Funding Circle Types or categories of transactions
-  //val CANCELLATION_TYPE = null
-  val FC_LOAN_PART_TYPE = "Loan Part"
-
-  val FC_LOAN_OFFER_TYPE = "Loan offer"
-
-  val FC_TRANSFERIN_TYPE = "TRANSFER IN"
-  //val TRANSFERIN_CARD_TYPE = null
-  val FC_WITHDRAWAL_TYPE = "Withdrawal"
-
-  val FC_FEE_TYPE = "Servicing fee"
-  val FC_FINAL_FEE_TYPE2 = "Servicing fee final"
-
-      // REPAYMENT
-  val FC_PRINCIPAL_REPAYMENT_TYPE = "Principal repayment"
-  val FC_EARLY_PRINCIPAL_REPAYMENT_TYPE = "Early principal repayment"
-  //val SELLOUT_TYPE = null
-  //val PARTIAL_SELLOUT_TYPE = null
-
-  val FC_PRINCIPAL_RECOVERY_TYPE = "Principal recovery"
-
-  val FC_INTEREST_REPAYMENT_TYPE = "Interest repayment"
-  val FC_EARLY_INTEREST_REPAYMENT_TYPE = "Early interest repayment"
-
-
-  // KEYs
-  val EXTRACT_REGEX = "EXTRACT_REGEX"
-
-  val FcTypes2GenericTypes = Map(
-    // LOAN
-//    CANCELLATION_TYPE -> Map(GENERIC_CANCELLATION_TYPE -> Map()),
-    FC_LOAN_PART_TYPE -> Map(GENERIC_LOAN_PART_TYPE -> Map(EXTRACT_REGEX -> LOAN_PART_REGEX_EXTRACT)),
-
-    // MISC
-    FC_LOAN_OFFER_TYPE -> Map(GENERIC_LOAN_OFFER_TYPE -> Map(EXTRACT_REGEX -> LOAN_OFFER_REGEX_EXTRACT)),
-
-    // TRANSFER
-    FC_TRANSFERIN_TYPE -> Map(GENERIC_TRANSFERIN_TYPE -> Map(EXTRACT_REGEX -> TRANSFERIN_REGEX_EXTRACT)),
-//    TRANSFERIN_CARD_TYPE -> Map(GENERIC_TRANSFERIN_CARD_TYPE -> Map()),
-    FC_WITHDRAWAL_TYPE -> Map(GENERIC_WITHDRAWAL_TYPE -> Map(EXTRACT_REGEX -> WITHDRAWAL_REGEX_EXTRACT)),
-
-    // FEE
-    FC_FEE_TYPE -> Map(GENERIC_FEE_TYPE -> Map(EXTRACT_REGEX -> SERVICING_FEE_REGEX_EXTRACT)),
-    FC_FINAL_FEE_TYPE2 -> Map(GENERIC_FINAL_FEE_TYPE2 -> Map(EXTRACT_REGEX -> SERVICING_FEE_REGEX_EXTRACT2)),
-
-    // REPAYMENT
-    FC_PRINCIPAL_REPAYMENT_TYPE -> Map(GENERIC_PRINCIPAL_REPAYMENT_TYPE -> Map(EXTRACT_REGEX -> PRINCIPAL_REPAYMENT_REGEX_EXTRACT)),
-    FC_EARLY_PRINCIPAL_REPAYMENT_TYPE -> Map(GENERIC_EARLY_PRINCIPAL_REPAYMENT_TYPE -> Map(EXTRACT_REGEX -> EARLY_PRINCIPAL_REPAYMENT_REGEX_EXTRACT)),
-//    SELLOUT_TYPE -> Map(GENERIC_SELLOUT_TYPE -> Map()),
-
-    // RECOVERY
-//    PARTIAL_SELLOUT_TYPE -> Map(GENERIC_PARTIAL_SELLOUT_TYPE -> Map()),
-    FC_PRINCIPAL_RECOVERY_TYPE -> Map(GENERIC_PRINCIPAL_RECOVERY_TYPE -> Map(EXTRACT_REGEX -> PRINCIPAL_RECOVERY_REGEX_EXTRACT)),
-
-    // INTEREST
-    FC_INTEREST_REPAYMENT_TYPE -> Map(GENERIC_INTEREST_REPAYMENT_TYPE -> Map(EXTRACT_REGEX -> INTEREST_REPAYMENT_REGEX_EXTRACT)),
-    FC_EARLY_INTEREST_REPAYMENT_TYPE -> Map(GENERIC_EARLY_INTEREST_REPAYMENT_TYPE -> Map(EXTRACT_REGEX -> EARLY_INTEREST_REPAYMENT_REGEX_EXTRACT))
-  )
 
   Show(FcTypes2GenericTypes)
 
 
 
-  val FcTypes2GenericCats = for {
-    genTypeInfoMap <- FcTypes2GenericTypes
-    genTypeInfo <- genTypeInfoMap._2
-  } yield(genTypeInfoMap._1 -> GenericType2Category(genTypeInfo._1) )
-  Show(FcTypes2GenericCats)
 
-  val FcTypes2Regex = for {
-    genTypeInfoMap <- FcTypes2GenericTypes
-    genTypeInfo <- genTypeInfoMap._2
-  } yield(genTypeInfoMap._1 -> genTypeInfo._2(EXTRACT_REGEX) )
+
+
   Show(FcTypes2Regex)
   FcTypes2GenericCats.keys
 
@@ -184,63 +56,6 @@ object ConcatenateFC {
     PRINCIPAL_RECOVERY_REGEX_EXTRACT
   )
   category.length
-
-  // RateSetter Types or categories of transactions
-  val RS_CANCELLATION_TYPE = "Cancellation of order"    // opposite or "Lend order"
-  val RS_LOAN_PART_TYPE = "Lend order"                  // order ready to be matched. opposite or "Cancellation of order", money committed
-
-//  val RS_LOAN_OFFER_TYPE = null
-
-  val RS_TRANSFERIN_TYPE = "Bank transfer"
-  val RS_TRANSFERIN_CARD_TYPE = "Card payment processed"
-  val RS_WITHDRAWAL_TYPE = "Next Day Money Withdrawal request"
-
-  val RS_FEE_TYPE = "RateSetter lender fee"
-//  val RS_FINAL_FEE_TYPE = null
-
-      // REPAYMENT
-  val RS_PRINCIPAL_REPAYMENT_TYPE = "Monthly repayment"
-  val RS_EARLY_PRINCIPAL_REPAYMENT_TYPE = "Repaid loan capital"
-  val RS_SELLOUT_TYPE = "RepaymentSellOut"
-  val RS_PARTIAL_SELLOUT_TYPE = "PartialSelloutRepayment"
-
-//  val RS_PRINCIPAL_RECOVERY_TYPE = null
-
-  val RS_INTEREST_REPAYMENT_TYPE = "Interest"
-  val RS_EARLY_INTEREST_REPAYMENT_TYPE= "Repaid loan interest"
-  val RS_INTEREST_SELLOUT_TYPE = "Sellout interest outstanding"
-
-  val RsTypes2GenericTypes = Map(
-        // LOAN
-        RS_CANCELLATION_TYPE -> Map(GENERIC_CANCELLATION_TYPE -> Map()),
-        RS_LOAN_PART_TYPE -> Map(GENERIC_LOAN_PART_TYPE -> Map()),
-
-        // MISC
-//        RS_LOAN_OFFER_TYPE -> Map(GENERIC_LOAN_OFFER_TYPE -> Map()),
-
-        // TRANSFER
-        RS_TRANSFERIN_TYPE -> Map(GENERIC_TRANSFERIN_TYPE -> Map()),
-        RS_TRANSFERIN_CARD_TYPE -> Map(GENERIC_TRANSFERIN_CARD_TYPE -> Map()),
-        RS_WITHDRAWAL_TYPE -> Map(GENERIC_WITHDRAWAL_TYPE -> Map()),
-
-        // FEE
-        RS_FEE_TYPE -> Map(GENERIC_FEE_TYPE -> Map()),
-//        RS_FINAL_FEE_TYPE -> Map(GENERIC_FINAL_FEE_TYPE2 -> Map()),
-
-        // REPAYMENT
-        RS_PRINCIPAL_REPAYMENT_TYPE -> Map(GENERIC_PRINCIPAL_REPAYMENT_TYPE -> Map()),
-        RS_EARLY_PRINCIPAL_REPAYMENT_TYPE -> Map(GENERIC_EARLY_PRINCIPAL_REPAYMENT_TYPE -> Map()),
-        RS_SELLOUT_TYPE -> Map(GENERIC_SELLOUT_TYPE -> Map()),
-
-        // RECOVERY
-        RS_PARTIAL_SELLOUT_TYPE -> Map(GENERIC_PARTIAL_SELLOUT_TYPE -> Map()),
-//        RS_PRINCIPAL_RECOVERY_TYPE -> Map(GENERIC_PRINCIPAL_RECOVERY_TYPE -> Map()),
-
-        // INTEREST
-        RS_INTEREST_REPAYMENT_TYPE -> Map(GENERIC_INTEREST_REPAYMENT_TYPE -> Map()),
-        RS_EARLY_INTEREST_REPAYMENT_TYPE -> Map(GENERIC_EARLY_INTEREST_REPAYMENT_TYPE -> Map()),
-        RS_INTEREST_SELLOUT_TYPE -> Map(GENERIC_INTEREST_SELLOUT_TYPE -> Map())
-  )
 
   val rateSetterCategory = List("Cancellation of order",
     "Bank transfer",
@@ -382,66 +197,80 @@ object ConcatenateFC {
 
     //val df = df0.withColumn("Type",when(column("Description").rlike(LOAN_PART_REGEX_EXTRACT)),lit("loan"))
 
+    
 
-    GenericType2Category("Monthly PRINCIPAL_REPAYMENT gen type")
-    def pred(like : String) = {
-      //col("Paid Out").equalTo(col("Principal")).or(col("Paid Out").equalTo(col("Interest")))
-      col("Description").rlike(like)
+    FcTypes2GenericTypes(FC_LOAN_PART_TYPE).map(_._1).head
+    FcTypes2GenericCats(FC_TRANSFERIN_TYPE)
+    FcTypes2Regex
+
+    provider2genType(Providers.FC,FC_LOAN_PART_TYPE)
+    FcTypes
+
+//    def fillinType(f: String => String): Column = {
+//      val cs : Column = FcTypes.tail.foldLeft(when(pred(FcTypes2Regex(FcTypes.head)), lit(f(FcTypes.head)))){(acc, t) =>
+//        acc.when(pred(FcTypes2Regex(t)), lit(t))}
+//      cs
+//    }
+
+    def fillinType(providerTypes: List[String],providerType2Regex :Map[String,String],c : String)(f: String => String): Column = {
+      val cs : Column = providerTypes.tail.foldLeft(when(col(c).rlike(providerType2Regex(providerTypes.head)), lit(f(providerTypes.head)))){(acc, t) =>
+        acc.when(col(c).rlike(providerType2Regex(t)), lit(f(t)))}
+      cs
+    }
+    //Providers
+    def getFillInTypeFct(providerType : Providers.Provider): (String => String) => Column = {
+      providerType match {
+        case Providers.FC => fillinType(FcTypes,FcTypes2Regex,"Description")
+        case Providers.RATESETTER => fillinType(RsTypes,RsTypes2Regex,"RsType")
+      }
     }
 
-    def fcType(): Column = {
-      when(pred(FC_LOAN_PART_TYPE), lit(FC_LOAN_PART_TYPE)).or(when(pred(FC_TRANSFERIN_TYPE), lit(FC_TRANSFERIN_TYPE)))
+    //val fcFillInTypeFct = getFillInTypeFct(Providers.FC)
+    getFillInTypeFct(Providers.FC)(identity)
+
+    def providerType(providerType : Providers.Provider): Column = {
+      val f: (String => String) => Column = getFillInTypeFct(providerType)
+      f(identity)
     }
-    def genType(): Column = {
-      when(pred(FC_LOAN_PART_TYPE), lit(GENERIC_LOAN_PART_TYPE)).or(when(pred(FC_TRANSFERIN_TYPE), lit()))
+    def genType(providerType : Providers.Provider): Column = {
+      val f : (String => String) => Column = getFillInTypeFct(providerType)
+      f(genType => provider2genType(providerType,genType))
     }
-    def genCat(): Column = {
-      when(pred(FC_LOAN_PART_TYPE), lit(GENERIC_LOAN_CATEGORY)).or(when(pred(FC_TRANSFERIN_TYPE), lit(FC_TRANSFERIN_TYPE)))
+    def genCat(providerType : Providers.Provider): Column = {
+      getFillInTypeFct(providerType).apply(genType => provider2genCats(providerType,genType))
+    }
+    def addLoanPartCols(df : DataFrame) = {
+      df.withColumn("Loan Part ID", when(col("Description").rlike(LOAN_PART_REGEX_EXTRACT)
+        , regexp_replace(col("Description"), LOAN_PART_REGEX_EXTRACT, "$1"))).
+        withColumn("Principal", when(col("Description").rlike(LOAN_PART_REGEX_EXTRACT)
+          , regexp_replace(col("Description"), LOAN_PART_REGEX_EXTRACT, "$2"))).
+        withColumn("Interest", when(col("Description").rlike(LOAN_PART_REGEX_EXTRACT)
+          , regexp_replace(col("Description"), LOAN_PART_REGEX_EXTRACT, "$3"))).
+        withColumn("Delta", when(col("Description").rlike(LOAN_PART_REGEX_EXTRACT)
+          , regexp_replace(col("Description"), LOAN_PART_REGEX_EXTRACT, "$4"))).withColumn("Fee", when(col("Description").rlike(LOAN_PART_REGEX_EXTRACT)
+        , regexp_replace(col("Description"), LOAN_PART_REGEX_EXTRACT, "$5")))
     }
 
     val df = df0
-    val df2 = df.withColumn("Loan Part ID", when(col("Description").rlike(LOAN_PART_REGEX_EXTRACT)
-      , regexp_replace(col("Description"), LOAN_PART_REGEX_EXTRACT, "$1"))).
-      withColumn("Principal", when(col("Description").rlike(LOAN_PART_REGEX_EXTRACT)
-        , regexp_replace(col("Description"), LOAN_PART_REGEX_EXTRACT, "$2"))).
-      withColumn("Interest", when(col("Description").rlike(LOAN_PART_REGEX_EXTRACT)
-        , regexp_replace(col("Description"), LOAN_PART_REGEX_EXTRACT, "$3"))).
-      withColumn("Delta", when(col("Description").rlike(LOAN_PART_REGEX_EXTRACT)
-        , regexp_replace(col("Description"), LOAN_PART_REGEX_EXTRACT, "$4"))).withColumn("Fee", when(col("Description").rlike(LOAN_PART_REGEX_EXTRACT)
-      , regexp_replace(col("Description"), LOAN_PART_REGEX_EXTRACT, "$5"))).
-      withColumn("FC type", fcType()).
-      withColumn("type", genType).
-      withColumn("cat", genCat)
+    val df2 = //addLoanPartCols(df).
+      df.
+      withColumn("FC type", providerType(Providers.FC)).
+      withColumn("type", genType(Providers.FC)).
+      withColumn("cat", genCat(Providers.FC))
 
-    //df2.count()
+    //df2.count()}}
     df2.sort(asc("Date"), desc("Paid In")).show(50, false)
+    df2.select(col("type")).distinct().show(50, false)
+    df2.select(col("cat")).distinct().show(50, false)
 
-    FcTypes2Regex
+    val df3 = //addLoanPartCols(df).
+      dfrs0.withColumnRenamed("Type","RsType").
+        withColumn("type", genType(Providers.RATESETTER)).
+        withColumn("cat", genCat(Providers.RATESETTER))
 
-    val df4 = df
+    //df2.count()}}
+    df3.show(50, false)
 
-    val df3 = df.withColumn("Interest", when(col("Description").rlike(LOAN_PART_REGEX_EXTRACT)
-      , regexp_replace(col("Description"), LOAN_PART_REGEX_EXTRACT, "$3"))).sort(asc("Date"), desc("Paid In"))
-    df3.select().show(50, false)
-
-    val cols2 = df2.columns.toSet
-    val cols3 = df3.columns.toSet
-
-    df2.select(expr(cols2, cols2 ++ cols3):_*).show(50,false)
-    df2.select(expr(cols2, cols2 ++ cols3):_*).union(df3.select(expr(cols3, cols2 ++ cols3):_*)).show(50,false)
-
-    //val df = dfs(0)
-    //df.coalesce(1).write .option("header", "true").csv(outputData + f"/Matlux_funding-circles_test_${dateRange.head}_${dateRange.last}.cvs")
-
-
-    System.out.println("========== Print Schema ============")
-    df0.printSchema()
-    System.out.println("========== Print Data ==============")
-    df.show(50,false)
-    System.out.println("========== Print Data df3 ==============")
-    df3.show(50,false)
-    System.out.println("========== Print title ==============")
-    df.select("Date").show()
 
   }
 
