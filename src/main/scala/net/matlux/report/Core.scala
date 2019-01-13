@@ -1,9 +1,11 @@
 package net.matlux.report
 
 import net.matlux.core.Show
-import net.matlux.report.RateSetter.RsTypes2GenericTypes
-import net.matlux.report.FundingCircle.FcTypes2GenericTypes
+import net.matlux.report.RateSetter.{RsTypes, RsTypes2GenericTypes}
+import net.matlux.report.FundingCircle.{FcTypes, FcTypes2GenericTypes}
 import net.matlux.report.Generic.{EXTRACT_REGEX, GenericType2Category}
+import org.apache.spark.sql.Column
+import org.apache.spark.sql.functions.{col, lit, when}
 
 object Core {
 
@@ -61,5 +63,32 @@ object Core {
   }
 
 
+  def fillinType(providerTypes: List[String],providerType2Regex :Map[String,String],c : String)(f: String => String): Column = {
+    val cs : Column = providerTypes.tail.foldLeft(when(col(c).rlike(providerType2Regex(providerTypes.head)), lit(f(providerTypes.head)))){(acc, t) =>
+      acc.when(col(c).rlike(providerType2Regex(t)), lit(f(t)))}
+    cs
+  }
+  //Providers
+  def getFillInTypeFct(providerType : Providers.Provider): (String => String) => Column = {
+    providerType match {
+      case Providers.FC => fillinType(FcTypes,FcTypes2Regex,"Description")
+      case Providers.RATESETTER => fillinType(RsTypes,RsTypes2Regex,"RsType")
+    }
+  }
+
+  //val fcFillInTypeFct = getFillInTypeFct(Providers.FC)
+  getFillInTypeFct(Providers.FC)(identity)
+
+  def providerType(providerType : Providers.Provider): Column = {
+    val f: (String => String) => Column = getFillInTypeFct(providerType)
+    f(identity)
+  }
+  def genType(providerType : Providers.Provider): Column = {
+    val f : (String => String) => Column = getFillInTypeFct(providerType)
+    f(genType => provider2genType(providerType,genType))
+  }
+  def genCat(providerType : Providers.Provider): Column = {
+    getFillInTypeFct(providerType).apply(genType => provider2genCats(providerType,genType))
+  }
 
 }

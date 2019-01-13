@@ -56,6 +56,7 @@ object ConcatenateFC {
     PRINCIPAL_RECOVERY_REGEX_EXTRACT
   )
   category.length
+  FcTypes2GenericTypes.keys.size
 
   val rateSetterCategory = List("Cancellation of order",
     "Bank transfer",
@@ -81,8 +82,10 @@ object ConcatenateFC {
     }
   }
 
+  FcTypes2Regex
+
   def validateCategorisation(df : DataFrame) = {
-    val dfcat = category.map(cat => df.filter(col("Description").rlike(cat))).reduceLeft((acc,df) => acc.union(df))
+    val dfcat = FcTypes2GenericTypes.keys.map(cat => df.filter(col("Description").rlike(FcTypes2Regex(cat)))).reduceLeft((acc,df) => acc.union(df))
     dfcat.count == df.count
 
     (dfcat.count == df.count,df.except(dfcat).sort(asc("Date"),desc("Paid In")))
@@ -197,7 +200,7 @@ object ConcatenateFC {
 
     //val df = df0.withColumn("Type",when(column("Description").rlike(LOAN_PART_REGEX_EXTRACT)),lit("loan"))
 
-    
+
 
     FcTypes2GenericTypes(FC_LOAN_PART_TYPE).map(_._1).head
     FcTypes2GenericCats(FC_TRANSFERIN_TYPE)
@@ -212,33 +215,6 @@ object ConcatenateFC {
 //      cs
 //    }
 
-    def fillinType(providerTypes: List[String],providerType2Regex :Map[String,String],c : String)(f: String => String): Column = {
-      val cs : Column = providerTypes.tail.foldLeft(when(col(c).rlike(providerType2Regex(providerTypes.head)), lit(f(providerTypes.head)))){(acc, t) =>
-        acc.when(col(c).rlike(providerType2Regex(t)), lit(f(t)))}
-      cs
-    }
-    //Providers
-    def getFillInTypeFct(providerType : Providers.Provider): (String => String) => Column = {
-      providerType match {
-        case Providers.FC => fillinType(FcTypes,FcTypes2Regex,"Description")
-        case Providers.RATESETTER => fillinType(RsTypes,RsTypes2Regex,"RsType")
-      }
-    }
-
-    //val fcFillInTypeFct = getFillInTypeFct(Providers.FC)
-    getFillInTypeFct(Providers.FC)(identity)
-
-    def providerType(providerType : Providers.Provider): Column = {
-      val f: (String => String) => Column = getFillInTypeFct(providerType)
-      f(identity)
-    }
-    def genType(providerType : Providers.Provider): Column = {
-      val f : (String => String) => Column = getFillInTypeFct(providerType)
-      f(genType => provider2genType(providerType,genType))
-    }
-    def genCat(providerType : Providers.Provider): Column = {
-      getFillInTypeFct(providerType).apply(genType => provider2genCats(providerType,genType))
-    }
     def addLoanPartCols(df : DataFrame) = {
       df.withColumn("Loan Part ID", when(col("Description").rlike(LOAN_PART_REGEX_EXTRACT)
         , regexp_replace(col("Description"), LOAN_PART_REGEX_EXTRACT, "$1"))).
