@@ -11,6 +11,7 @@ import net.matlux.report.Generic._
 import net.matlux.report.FundingCircle._
 import net.matlux.report.RateSetter._
 import net.matlux.report.Core._
+import org.apache.spark.sql.expressions.Window
 
 
 // https://p2pblog.co.uk/uk-p2p-self-assessment-taxes/
@@ -84,12 +85,7 @@ object ConcatenateFC {
 
   FcTypes2Regex
 
-  def validateCategorisation(df : DataFrame) = {
-    val dfcat = FcTypes2GenericTypes.keys.map(cat => df.filter(col("Description").rlike(FcTypes2Regex(cat)))).reduceLeft((acc,df) => acc.union(df))
-    dfcat.count == df.count
 
-    (dfcat.count == df.count,df.except(dfcat).sort(asc("Date"),desc("Paid In")))
-  }
 
   def expr(myCols: Set[String], allCols: Set[String]) = {
     allCols.toList.map(x => x match {
@@ -144,7 +140,7 @@ object ConcatenateFC {
     ))
     //val ratesetterFile = "/../Matlux_rate-setter_LenderTransactions_all_2014-03-24_2018-11-29.csv"
     val ratesetterFile = "/../Mathieu_rate-setter_classic_all_2016-07-19_2019-01-10.csv"
-    val dfrs0 = spark.read.format("csv").options(optsrs).schema(customSchemaRs).csv(inputData + ratesetterFile)
+    val dfrs0 = spark.read.format("csv").options(optsrs).schema(customSchemaRs).csv(inputData + ratesetterFile).withColumnRenamed("Type","RsType")
 
 
     val df0File = outputData + f"/Matlux_funding-circles_test_${dateRange.head}_${dateRange.last}.cvs"
@@ -168,6 +164,10 @@ object ConcatenateFC {
     dfrs0.filter(col("Item").rlike("C365366711357")).show(500, false)
     dfrs0.filter(col("Item").rlike("C341518375920")).show(500, false)
 
+    val (isCorrectrs, missingElementsrs) = validateCategorisation(Providers.RATESETTER,dfrs0)
+    if (!isCorrectrs) missingElementsrs.show(50, false)
+    if (isCorrectrs) println("correct")
+
     df0.sort(asc("Date"), desc("Paid In"), desc("Paid Out")).show(50, false)
     df0.count()
 
@@ -187,6 +187,7 @@ object ConcatenateFC {
     category.map(cat => df0.filter(col("Description").rlike(cat)).count).sum
 
 
+
     val dfcat = category.map(cat => df0.filter(col("Description").rlike(cat))).reduceLeft((acc, df) => acc.union(df))
     dfcat.count
 
@@ -194,7 +195,7 @@ object ConcatenateFC {
 
     df0.filter(col("Description").rlike("Loan offer")).agg(sum("Paid Out")).show(500, false)
 
-    val (isCorrect, missingElements) = validateCategorisation(df0)
+    val (isCorrect, missingElements) = validateCategorisation(Providers.FC,df0)
     if (!isCorrect) missingElements.show(50, false)
     if (isCorrect) println("correct")
 
@@ -228,11 +229,14 @@ object ConcatenateFC {
     }
 
     val df = df0
-    val df2 = //addLoanPartCols(df).
-      df.
+     //addLoanPartCols(df).
+     val df2 = df.//addLoanPartCols(df).
       withColumn("FC type", providerType(Providers.FC)).
       withColumn("type", genType(Providers.FC)).
-      withColumn("cat", genCat(Providers.FC))
+      withColumn("cat", genCat(Providers.FC)).
+       withColumn("Amount",when(column("Paid Out").isNotNull,lit(0).minus(column("Paid Out"))).
+         when(column("Paid In").isNotNull,column("Paid In"))).
+       withColumn("month",month(column("date"))).withColumn("year",year(column("date")))
 
     //df2.count()}}
     df2.sort(asc("Date"), desc("Paid In")).show(50, false)
@@ -240,12 +244,40 @@ object ConcatenateFC {
     df2.select(col("cat")).distinct().show(50, false)
 
     val df3 = //addLoanPartCols(df).
-      dfrs0.withColumnRenamed("Type","RsType").
+      dfrs0.
         withColumn("type", genType(Providers.RATESETTER)).
-        withColumn("cat", genCat(Providers.RATESETTER))
+        withColumn("cat", genCat(Providers.RATESETTER)).
+        withColumn("month",month(column("date"))).withColumn("year",year(column("date")))
 
     //df2.count()}}
     df3.show(50, false)
+
+
+    val df5 = df0.withColumn("month",month(column("date"))).withColumn("year",year(column("date")))
+    //val df = spark.read.parquet("/home/mathieu/datashare/hdfs/parquet/test3")
+
+    //val df0 = dfrs0.filter(column("date").gt(lit("2018-04-05"))).show
+
+    val df4 = df2
+    df4.filter(column("year")==="2014").groupBy("year","month","type").sum("amount","capital","interest","fee").sort("year","month").show()
+    df4.filter(column("year")==="2014").groupBy("year","month","type").sum("amount").sort("year","month").show()
+    df4.filter(column("year")==="2014").groupBy("year","month").agg(sum("amount")).sort("year","month").show()
+    df4.filter(column("year")==="2014").groupBy("year","month").pivot("type").agg(sum("amount")).sort("year","month").show()
+    df4.groupBy("year","month").pivot("cat").agg(sum("amount")).sort("year","month").show()
+    df3.groupBy("year","month").pivot("cat").agg(sum("amount")).sort("year","month").show()
+    df4.groupBy("year","month").pivot("cat",List("Bank transfer","Interest","RateSetter lender fee")).agg(sum("amount")).sort("year","month").show()
+
+
+    //val wSpec2 = Window.partitionBy("year","month").orderBy("year","month").rowsBetween(Long.MinValue, 0)
+    val wSpec2 = Window.orderBy("year","month").rowsBetween(Long.MinValue, 0)
+    val pivotedReport = df4.groupBy("year","month").pivot("cat",List(GENERIC_TRANSFER_CATEGORY,GENERIC_INTEREST_CATEGORY,GENERIC_FEE_CATEGORY)).agg(sum("amount")).sort("year","month")
+
+    val finalReport = pivotedReport.withColumn("cum BT",sum(pivotedReport(GENERIC_TRANSFER_CATEGORY)).over(wSpec2)).
+      withColumn("cum interest",sum(pivotedReport(GENERIC_INTEREST_CATEGORY)).over(wSpec2)).
+      withColumn("cum fee",sum(pivotedReport(GENERIC_FEE_CATEGORY)).over(wSpec2)).
+      select("year","month",GENERIC_TRANSFER_CATEGORY,"cum BT",GENERIC_INTEREST_CATEGORY,"cum interest",GENERIC_FEE_CATEGORY,"cum fee")
+
+    finalReport.show(50,false)
 
 
   }

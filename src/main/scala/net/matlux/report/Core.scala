@@ -4,8 +4,8 @@ import net.matlux.core.Show
 import net.matlux.report.RateSetter.{RsTypes, RsTypes2GenericTypes}
 import net.matlux.report.FundingCircle.{FcTypes, FcTypes2GenericTypes}
 import net.matlux.report.Generic.{EXTRACT_REGEX, GenericType2Category}
-import org.apache.spark.sql.Column
-import org.apache.spark.sql.functions.{col, lit, when}
+import org.apache.spark.sql.{Column, DataFrame}
+import org.apache.spark.sql.functions._
 
 object Core {
 
@@ -14,16 +14,13 @@ object Core {
     genTypeInfo <- genTypeInfoMap._2
   } yield(genTypeInfoMap._1 -> genTypeInfo._2(EXTRACT_REGEX) )
 
-  RsTypes2Regex
-  Show(RsTypes2GenericTypes)
 
   val RsTypes2GenericCats = for {
     genTypeInfoMap <- RsTypes2GenericTypes
     genTypeInfo <- genTypeInfoMap._2
   } yield(genTypeInfoMap._1 -> GenericType2Category(genTypeInfo._1) )
 
-  RsTypes2Regex
-  Show(RsTypes2GenericCats)
+
 
   val FcTypes2Regex = for {
     genTypeInfoMap <- FcTypes2GenericTypes
@@ -35,17 +32,22 @@ object Core {
     genTypeInfo <- genTypeInfoMap._2
   } yield(genTypeInfoMap._1 -> GenericType2Category(genTypeInfo._1) )
 
-  Show(FcTypes2GenericCats)
 
   // providers
-//  val RATESETTER = "Ratesetter"
-//  val FC = "Funding Circle"
 
   object Providers extends Enumeration {
     type Provider = Value
     val RATESETTER, FC = Value
   }
 
+
+  def providerFunctions(provider : Providers.Provider) = {
+    val provider2genType : (Map[String,Map[String,Map[String,String]]],Map[String,String],Map[String,String],String) = provider match{
+      case Providers.FC => (FcTypes2GenericTypes,FcTypes2GenericCats,FcTypes2Regex,"Description")
+      case Providers.RATESETTER => (RsTypes2GenericTypes,RsTypes2GenericCats,RsTypes2Regex,"RsType")
+    }
+    provider2genType
+  }
 
   def provider2genType(provider : Providers.Provider,providerType : String ) = {
     val provider2genType2 : Map[String,Map[String,Map[String,String]]] = provider match{
@@ -61,7 +63,13 @@ object Core {
     }
     provider2genType2(providerType)
   }
+  def validateCategorisation(providerType : Providers.Provider,df : DataFrame) = {
+    val (providerTypes2GenericTypes,_,providerTypes2Regex,col2FilterWith) = providerFunctions(providerType)
+    val dfcat = providerTypes2GenericTypes.keys.map(cat => df.filter(col(col2FilterWith).rlike(providerTypes2Regex(cat)))).reduceLeft((acc,df) => acc.union(df))
+    dfcat.count == df.count
 
+    (dfcat.count == df.count,df.except(dfcat).sort(asc("Date")))
+  }
 
   def fillinType(providerTypes: List[String],providerType2Regex :Map[String,String],c : String)(f: String => String): Column = {
     val cs : Column = providerTypes.tail.foldLeft(when(col(c).rlike(providerType2Regex(providerTypes.head)), lit(f(providerTypes.head)))){(acc, t) =>
@@ -76,8 +84,6 @@ object Core {
     }
   }
 
-  //val fcFillInTypeFct = getFillInTypeFct(Providers.FC)
-  getFillInTypeFct(Providers.FC)(identity)
 
   def providerType(providerType : Providers.Provider): Column = {
     val f: (String => String) => Column = getFillInTypeFct(providerType)

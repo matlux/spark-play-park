@@ -4,6 +4,9 @@ import net.matlux.report.Generic._
 
 object RateSetter {
 
+  // Regexes
+  val TAXABLE_CASH_BACK_REGEX_EXTRACT = "TaxableCashBack|RateSetter\\scash\\sback"
+
 
   // RateSetter Types or categories of transactions
   val RS_CANCELLATION_TYPE = "Cancellation of order"    // opposite or "Lend order"
@@ -14,6 +17,7 @@ object RateSetter {
   val RS_TRANSFERIN_TYPE = "Bank transfer"
   val RS_TRANSFERIN_CARD_TYPE = "Card payment processed"
   val RS_WITHDRAWAL_TYPE = "Next Day Money Withdrawal request"
+  val RS_MONEY_MOVED_TO_OTHER_AC = "Money moved to your other RS Account"
 
   val RS_FEE_TYPE = "RateSetter lender fee"
   //  val RS_FINAL_FEE_TYPE = null
@@ -29,6 +33,7 @@ object RateSetter {
   val RS_INTEREST_REPAYMENT_TYPE = "Interest"
   val RS_EARLY_INTEREST_REPAYMENT_TYPE= "Repaid loan interest"
   val RS_INTEREST_SELLOUT_TYPE = "Sellout interest outstanding"
+  val RS_TAXABLE_CASH_BACK = "TaxableCashBack"
 
   val RsTypes2GenericTypes = Map(
     // LOAN
@@ -42,6 +47,7 @@ object RateSetter {
     RS_TRANSFERIN_TYPE -> Map(GENERIC_TRANSFERIN_TYPE -> Map(EXTRACT_REGEX -> RS_TRANSFERIN_TYPE)),
     RS_TRANSFERIN_CARD_TYPE -> Map(GENERIC_TRANSFERIN_CARD_TYPE -> Map(EXTRACT_REGEX -> RS_TRANSFERIN_CARD_TYPE)),
     RS_WITHDRAWAL_TYPE -> Map(GENERIC_WITHDRAWAL_TYPE -> Map(EXTRACT_REGEX -> RS_WITHDRAWAL_TYPE)),
+    RS_MONEY_MOVED_TO_OTHER_AC -> Map(GENERIC_WITHDRAWAL_TYPE -> Map(EXTRACT_REGEX -> RS_MONEY_MOVED_TO_OTHER_AC)),
 
     // FEE
     RS_FEE_TYPE -> Map(GENERIC_FEE_TYPE -> Map(EXTRACT_REGEX -> RS_FEE_TYPE)),
@@ -59,7 +65,9 @@ object RateSetter {
     // INTEREST
     RS_INTEREST_REPAYMENT_TYPE -> Map(GENERIC_INTEREST_REPAYMENT_TYPE -> Map(EXTRACT_REGEX -> RS_INTEREST_REPAYMENT_TYPE)),
     RS_EARLY_INTEREST_REPAYMENT_TYPE -> Map(GENERIC_EARLY_INTEREST_REPAYMENT_TYPE -> Map(EXTRACT_REGEX -> RS_EARLY_INTEREST_REPAYMENT_TYPE)),
-    RS_INTEREST_SELLOUT_TYPE -> Map(GENERIC_INTEREST_SELLOUT_TYPE -> Map(EXTRACT_REGEX -> RS_INTEREST_SELLOUT_TYPE))
+    RS_INTEREST_SELLOUT_TYPE -> Map(GENERIC_INTEREST_SELLOUT_TYPE -> Map(EXTRACT_REGEX -> RS_INTEREST_SELLOUT_TYPE)),
+    RS_TAXABLE_CASH_BACK -> Map(GENERIC_INTEREST_SELLOUT_TYPE -> Map(EXTRACT_REGEX -> TAXABLE_CASH_BACK_REGEX_EXTRACT))
+
   )
   val RsTypes = RsTypes2GenericTypes.keys.toList
 
