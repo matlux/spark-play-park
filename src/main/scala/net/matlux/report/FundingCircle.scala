@@ -1,6 +1,14 @@
 package net.matlux.report
 
+import java.io.File
+
+import basics.ConcatenateFC.inputData
+import net.matlux.core.FileUtils.getListOfFiles
+import net.matlux.report.Core._
 import net.matlux.report.Generic._
+import org.apache.spark.sql.{DataFrame, SparkSession}
+import org.apache.spark.sql.functions._
+import org.apache.spark.sql.types.{DateType, StringType, StructField, StructType}
 
 object FundingCircle {
 
@@ -83,5 +91,59 @@ object FundingCircle {
   )
 
   val FcTypes = FcTypes2GenericTypes.keys.toList
+
+  def addLoanPartCols(df : DataFrame) = {
+    df.withColumn("Loan Part ID", when(col("Description").rlike(LOAN_PART_REGEX_EXTRACT)
+      , regexp_replace(col("Description"), LOAN_PART_REGEX_EXTRACT, "$1"))).
+      withColumn("Principal", when(col("Description").rlike(LOAN_PART_REGEX_EXTRACT)
+        , regexp_replace(col("Description"), LOAN_PART_REGEX_EXTRACT, "$2"))).
+      withColumn("Interest", when(col("Description").rlike(LOAN_PART_REGEX_EXTRACT)
+        , regexp_replace(col("Description"), LOAN_PART_REGEX_EXTRACT, "$3"))).
+      withColumn("Delta", when(col("Description").rlike(LOAN_PART_REGEX_EXTRACT)
+        , regexp_replace(col("Description"), LOAN_PART_REGEX_EXTRACT, "$4"))).withColumn("Fee", when(col("Description").rlike(LOAN_PART_REGEX_EXTRACT)
+      , regexp_replace(col("Description"), LOAN_PART_REGEX_EXTRACT, "$5")))
+  }
+
+  def cleanData(df : DataFrame) = {
+    val df2 = df.//addLoanPartCols(df).
+      withColumn("FC type", providerType(Providers.FC)).
+      withColumn("type", genType(Providers.FC)).
+      withColumn("cat", genCat(Providers.FC)).
+      withColumn("Amount",when(column("Paid Out").isNotNull,lit(0).minus(column("Paid Out"))).
+        when(column("Paid In").isNotNull,column("Paid In"))).
+      withColumn("month",month(column("date"))).withColumn("year",year(column("date")))
+
+    df2
+  }
+
+  val customSchema = StructType(Array(
+    StructField("Date", DateType, true),
+    StructField("Description", StringType, true),
+    StructField("Paid In", decimalType, true),
+    StructField("Paid Out", decimalType, true)))
+
+
+  val listFiles = getListOfFiles(new File(inputData), List("csv")).filter(f => f.getName.matches(matcher)).sorted
+
+  def loadFcMonthlyFiles(spark: SparkSession, matcher : String) = {
+    val dateRange = listFiles.flatMap(f =>
+      s"${matcher}_\\d{4}-\\d{2}-.._..-..-..\\.csv".r.findFirstMatchIn(f.getName) match {
+        case Some(i) => List(i.group(1))
+        case None => List()
+      }).sorted
+
+    dateRange.head
+    dateRange.last
+
+
+    val dfs = listFiles.map(f =>
+      spark.read.format("csv")
+        .options(opts)
+        .schema(customSchema)
+        .csv(f.getCanonicalPath))
+    val df00 = dfs.reduceLeft((acc, df) => acc.union(df)).sort(asc("Date"), desc("Paid In"))
+    (df00, dateRange)
+  }
+
 
 }

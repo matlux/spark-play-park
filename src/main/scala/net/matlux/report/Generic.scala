@@ -1,6 +1,7 @@
 package net.matlux.report
 
 import basics.ConcatenateFC._
+import org.apache.spark.sql.types.{DataTypes, DecimalType}
 
 object Generic {
 
@@ -91,6 +92,9 @@ object Generic {
     atype <- cat._2
   } yield (atype._1 -> cat._1)
 
+
+
+  val decimalType: DecimalType = DataTypes.createDecimalType(15, 2)
 
 
 }

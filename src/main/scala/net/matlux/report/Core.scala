@@ -3,7 +3,8 @@ package net.matlux.report
 import net.matlux.core.Show
 import net.matlux.report.RateSetter.{RsTypes, RsTypes2GenericTypes}
 import net.matlux.report.FundingCircle.{FcTypes, FcTypes2GenericTypes}
-import net.matlux.report.Generic.{EXTRACT_REGEX, GenericType2Category}
+import net.matlux.report.Generic._
+import org.apache.spark.sql.expressions.Window
 import org.apache.spark.sql.{Column, DataFrame}
 import org.apache.spark.sql.functions._
 
@@ -96,5 +97,32 @@ object Core {
   def genCat(providerType : Providers.Provider): Column = {
     getFillInTypeFct(providerType).apply(genType => provider2genCats(providerType,genType))
   }
+
+
+  def generateReport1(df4 : DataFrame, startDateEx :String, endDateEx :String) = {
+    val wSpec2 = Window.orderBy("year","month").rowsBetween(Long.MinValue, 0)
+    val pivotedReport = df4.filter(column("date").gt(lit(startDateEx))).
+      filter(column("date").lt(lit(endDateEx))).
+      groupBy("year","month").
+      pivot("cat",List(GENERIC_TRANSFER_CATEGORY,GENERIC_INTEREST_CATEGORY,GENERIC_FEE_CATEGORY,GENERIC_PRINCIPAL_RECOVERY_CATEGORY)).
+      agg(sum("amount")).
+      sort("year","month")
+
+    val finalReport = pivotedReport.
+      withColumn("cum BT",sum(pivotedReport(GENERIC_TRANSFER_CATEGORY)).over(wSpec2)).
+      withColumn("cum interest",sum(pivotedReport(GENERIC_INTEREST_CATEGORY)).over(wSpec2)).
+      withColumn("cum fee",sum(pivotedReport(GENERIC_FEE_CATEGORY)).over(wSpec2)).
+      withColumn("cum recovery",sum(pivotedReport(GENERIC_PRINCIPAL_RECOVERY_CATEGORY)).over(wSpec2)).
+      withColumn("sum return",col("cum interest").plus(col("cum fee"))).//.plus(col("cum recovery"))
+      select("year","month",GENERIC_TRANSFER_CATEGORY,"cum BT",GENERIC_INTEREST_CATEGORY,"cum interest",GENERIC_FEE_CATEGORY,"cum fee",
+      GENERIC_PRINCIPAL_RECOVERY_CATEGORY,"cum recovery","sum return")
+
+    finalReport
+
+  }
+
+  val opts = Map("header" -> "true",
+    "dateFormat" -> "yyyy-MM-dd",
+    "inferSchema" -> "true")
 
 }

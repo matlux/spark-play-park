@@ -1,6 +1,10 @@
 package net.matlux.report
 
+import net.matlux.report.Core.{Providers, genCat, genType, providerType}
 import net.matlux.report.Generic._
+import org.apache.spark.sql.DataFrame
+import org.apache.spark.sql.functions._
+import org.apache.spark.sql.types.{DateType, StringType, StructField, StructType}
 
 object RateSetter {
 
@@ -70,5 +74,28 @@ object RateSetter {
 
   )
   val RsTypes = RsTypes2GenericTypes.keys.toList
+
+
+
+  def cleanData(df : DataFrame) = {
+    val df2 = df.
+      withColumn("type", genType(Providers.RATESETTER)).
+      withColumn("cat", genCat(Providers.RATESETTER)).
+      withColumn("month",month(column("date"))).withColumn("year",year(column("date")))
+
+
+    df2
+  }
+  val customSchemaRs = StructType(Array(
+    StructField("Date", DateType, true),
+    StructField("Market", StringType, true),
+    StructField("Type", StringType, true),
+    StructField("Item", StringType, true),
+    StructField("Amount", decimalType, true),
+    StructField("Capital", decimalType, true),
+    StructField("Interest", decimalType, true),
+    StructField("Fee", decimalType, true)
+  ))
+
 
 }
