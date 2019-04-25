@@ -41,7 +41,7 @@ object ConcatenateFC {
 
     val matlux = "Matlux_funding-circles_(.*)"
 
-    val matcher = perso
+    val matcher = matlux
 
     val (df00, dateRange) = loadFcMonthlyFiles(spark, matcher)
 
@@ -56,8 +56,13 @@ object ConcatenateFC {
     val dfrs0 = spark.read.format("csv").options(optsrs).schema(customSchemaRs).csv(inputData + ratesetterFile).withColumnRenamed("Type","RsType")
 
 
-    val df0File = outputData + f"/Matlux_funding-circles_test_${dateRange.head}_${dateRange.last}.cvs"
+    val df0File = outputData + f"/Matlux_funding-circle_all_${dateRange.head}_${dateRange.last}.cvs"
     val df0 = spark.read.format("csv").options(opts).schema(customSchema).csv(df0File)
+
+    //val df = dfs(0)
+    //
+    //df00.coalesce(1).write .option("header", "true").csv(outputData + f"/Matlux_funding-circles_test_${dateRange.head}_${dateRange.last}.cvs")
+
 
     //dfrs0.filter(col("Type").rlike("PartialSelloutRepayment")).show(500, false)
     //dfrs0.filter(col("Item").rlike("C365366711357")).show(500, false)

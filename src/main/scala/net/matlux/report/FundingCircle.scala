@@ -123,9 +123,11 @@ object FundingCircle {
     StructField("Paid Out", decimalType, true)))
 
 
-  val listFiles = getListOfFiles(new File(inputData), List("csv")).filter(f => f.getName.matches(matcher)).sorted
+
 
   def loadFcMonthlyFiles(spark: SparkSession, matcher : String) = {
+
+    val listFiles = getListOfFiles(new File(inputData), List("csv")).filter(f => f.getName.matches(matcher)).sorted
     val dateRange = listFiles.flatMap(f =>
       s"${matcher}_\\d{4}-\\d{2}-.._..-..-..\\.csv".r.findFirstMatchIn(f.getName) match {
         case Some(i) => List(i.group(1))
