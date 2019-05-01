@@ -37,7 +37,7 @@ object ConcatenateFC {
   def concatenate(spark : SparkSession): Unit = {
 
 
-    val perso = "Mathieu_funding-circles_classic_(.*)"
+    val un = "Mathieu_funding-circles_classic_(.*)"
 
     val matlux = "Matlux_funding-circles_(.*)"
 
