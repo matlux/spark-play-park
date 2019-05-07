@@ -6,13 +6,13 @@ package basics
 import basics.ConcatenateFC.concatenate
 import config.MyConfig
 import org.apache.spark
-import org.apache.spark.sql.{Column, SaveMode, SparkSession}
+import org.apache.spark.sql.{Column, DataFrame, SaveMode, SparkSession}
 import org.apache.spark.sql.functions._
 import org.apache.spark.sql.expressions.Window
 //import org.apache.spark.sql._
 import com.typesafe.config.ConfigFactory
 
-object ParquetTest {
+object ParquetBitemporal {
 
   val inputData = ConcatenateFC.inputData
   val outputData = "./outputdata"
@@ -29,7 +29,8 @@ object ParquetTest {
 
 
 //dfrs0
-    val df = df0.withColumn("month",month(column("date"))).withColumn("year",year(column("date"))).withColumn("day",dayofmonth(column("date")))
+    val df = df0
+    //val df = df0.withColumn("month",month(column("date"))).withColumn("year",year(column("date"))).withColumn("day",dayofmonth(column("date")))
     //val df = spark.read.parquet("/home/mathieu/datashare/hdfs/parquet/test3")
 
     //val df0 = dfrs0.filter(column("date").gt(lit("2018-04-05"))).show
@@ -72,9 +73,16 @@ object ParquetTest {
 
 //    val timeSeries1 = df.groupBy("year","month","day").agg(last("amount")).sort("year","month","day")
 //    val timeSeries2 = df.groupBy("year","month","day").agg(first("amount")).sort("year","month","day")
-    val timeSeries1 = df.filter(column("date").lt(lit("2018-11-27"))).groupBy("date","year","month","day").agg(last("amount")).withColumnRenamed("last(amount, false)","value").withColumn("extract_time",to_date(lit("2018-11-26"))).sort("date")
-    val timeSeries2 = df.filter(column("date").lt(lit("2018-11-28"))).groupBy("date","year","month","day").agg(first("amount")).withColumnRenamed("first(amount, false)","value").withColumn("extract_time",to_date(lit("2018-11-27"))).sort("date")
-    val timeSeries3 = df.groupBy("date","year","month","day").agg(last("amount")).withColumnRenamed("last(amount, false)","value").withColumn("extract_time",to_date(lit("2018-11-28"))).sort("date")
+    val timeSeries1 = df.filter(column("date").lt(lit("2018-11-27"))).
+              groupBy("date").
+              agg(last("amount")).
+              withColumnRenamed("last(amount, false)","value").
+              withColumn("value2",when(col("date").equalTo(lit("2014-04-01")),lit(2305)).otherwise(col("value"))).
+              drop("value").
+              withColumnRenamed("value2","value").
+              sort("date")
+    val timeSeries2 = df.filter(column("date").lt(lit("2018-11-28"))).groupBy("date").agg(last("amount")).withColumnRenamed("last(amount, false)","value").sort("date")
+    val timeSeries3 = df.groupBy("date").agg(last("amount")).withColumnRenamed("last(amount, false)","value").sort("date")
     timeSeries1.show()
     timeSeries1.printSchema()
     timeSeries2.show()
@@ -84,9 +92,9 @@ object ParquetTest {
     timeSeries1.select(last("date")).show()
     timeSeries2.select(last("date")).show()
     timeSeries3.select(last("date")).show()
-
-
-
+//      .withColumn("extract_time",to_date(lit("2018-11-26")))
+//      .withColumn("extract_time",to_date(lit("2018-11-27")))
+//      .withColumn("extract_time",to_date(lit("2018-11-28")))
 
     spark.sql("select sum(interest) from transaction").show();
 
@@ -94,9 +102,40 @@ object ParquetTest {
 
     finalReport.coalesce(1).write .option("header", "true").csv(outputData + "/rateSetter_report4.cvs")
 
-    timeSeries1.write.partitionBy("year","month","day").mode(SaveMode.Append).parquet(outputData + "/parquet/timeSeries1")
+    //.show()
+    writeParquet(addExtrationTime(timeSeries1,"2018-11-26"),outputData + "/parquet/timeSeries1")
 
-    timeSeries1.except(timeSeries2).show()
+    val t1 = readParquet(spark, outputData + "/parquet/timeSeries1")
+    t1.show()
+    val newT1 = getLatestData(t1)
+
+    timeSeries1.show()
+    newT1.show()
+
+    val timeSeriesToAppend = timeSeries2.except(newT1)
+    timeSeriesToAppend.count()
+
+    writeParquet(addExtrationTime(timeSeriesToAppend,"2018-11-27"),outputData + "/parquet/timeSeries1")
+
+    val t2 = readParquet(spark, outputData + "/parquet/timeSeries1")
+
+    t2.count
+
+    val newT2 = getLatestData(t2)
+    newT2.show
+
+    val timeSeries3ToAppend = timeSeries3.except(newT2)
+    timeSeries3ToAppend.show()
+
+    writeParquet(addExtrationTime(timeSeries3ToAppend,"2018-11-28"),outputData + "/parquet/timeSeries1")
+
+    val t3 = readParquet(spark, outputData + "/parquet/timeSeries1")
+    t3.sort("date").show()
+    t3.count()
+
+    val newT3 = getLatestData(t3)
+    newT3.show
+    timeSeries3.except(newT3).count
 
 
 
@@ -118,6 +157,23 @@ object ParquetTest {
     System.out.println("========== Print title ==============");
     df.select("Date").show();
 
+  }
+
+  def getLatestData(df :DataFrame) : DataFrame = {
+    df.groupBy("date").agg(last("value")).withColumnRenamed("last(value, false)","value").drop("extract_time")
+  }
+
+  def readParquet(spark: SparkSession,path : String): DataFrame = {
+    spark.read.parquet(path).select("date","value","extract_time").sort("date")
+  }
+
+  def writeParquet(df :DataFrame, path: String) {
+    df.withColumn("month",month(column("date"))).withColumn("year",year(column("date"))).withColumn("day",dayofmonth(column("date"))).
+      write.partitionBy("year","month","day").mode(SaveMode.Append).parquet(path)
+  }
+
+  def addExtrationTime(df :DataFrame, exDate : String): DataFrame = {
+    df.withColumn("extract_time",to_date(lit(exDate)))
   }
 
   def main(args: Array[String]) {
