@@ -3,7 +3,7 @@ package basics
 import org.apache.spark.sql.SparkSession
 import org.scalatest.{FlatSpec, FunSuite, Matchers}
 
-class ParquetBitemporalTest  extends FlatSpec with Matchers {
+class ParquetBitemporalTest  extends FlatSpec {
   "42" should "equal to 42" in {
 
 
